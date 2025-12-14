@@ -10,6 +10,7 @@ const statsEl = document.getElementById('stats');
 const emptyState = document.getElementById('emptyState');
 const overlayInfo = document.getElementById('overlayInfo');
 const captionResult = document.getElementById('captionResult');
+const captionLabel = captionResult?.querySelector('.caption-label');
 const captionText = document.getElementById('captionText');
 const serverInput = document.getElementById('server');
 const useWsCb = document.getElementById('useWs');
@@ -117,6 +118,8 @@ function applySettings() {
   if (s.showOverlay !== undefined && showOverlayCb) showOverlayCb.checked = s.showOverlay;
   if (s.maskAlpha) maskAlphaInput.value = s.maskAlpha;
   if (s.model) currentModel = s.model;
+  if (s.textQueries !== undefined && textQueriesInput) textQueriesInput.value = s.textQueries;
+  if (s.vqaQuestion !== undefined && vqaQuestionInput) vqaQuestionInput.value = s.vqaQuestion;
   updateVars();
 }
 
@@ -129,13 +132,35 @@ function updateVars() {
     quality: qualitySelect?.value, imgsz: imgszInput?.value, half: halfCb?.checked,
     showBoxes: showBoxesCb?.checked, showLabels: showLabelsCb?.checked, showMasks: showMasksCb?.checked,
     showKeypoints: showKeypointsCb?.checked, showSkeleton: showSkeletonCb?.checked,
-    showOverlay: showOverlayCb?.checked, maskAlpha: maskAlphaInput?.value, model: currentModel
+    showOverlay: showOverlayCb?.checked, maskAlpha: maskAlphaInput?.value, model: currentModel,
+    textQueries: textQueriesInput?.value, vqaQuestion: vqaQuestionInput?.value
   });
+
+  // WebSocket 运行中动态更新配置（后端支持文本消息 config）
+  if (running && useWsCb?.checked && ws && wsReady) {
+    try {
+      const p = getParams();
+      const tq = (p.textQueries || '').split(',').map(s => s.trim()).filter(Boolean);
+      const payload = {
+        type: 'config',
+        model: p.model,
+        conf: p.conf,
+        iou: p.iou,
+        max_det: p.maxDet,
+        imgsz: p.imgsz,
+        half: !!p.half,
+      };
+      if (p.device !== 'auto') payload.device = p.device;
+      if (tq.length) payload.text_queries = tq;
+      if (p.question) payload.question = p.question;
+      ws.send(JSON.stringify(payload));
+    } catch {}
+  }
 }
 
 [fpsSelect, sendSizeSelect, serverInput, confInput, iouInput, maxDetInput, deviceSelect, qualitySelect,
  imgszInput, halfCb, showBoxesCb, showLabelsCb, showMasksCb, showKeypointsCb, showSkeletonCb, showOverlayCb,
- maskAlphaInput, useWsCb].forEach(el => el?.addEventListener('change', updateVars));
+ maskAlphaInput, useWsCb, textQueriesInput, vqaQuestionInput].forEach(el => el?.addEventListener('change', updateVars));
 
 // Models
 async function loadModels() {
@@ -276,7 +301,12 @@ function getParams() {
   const base = (serverInput?.value?.trim() || baseUrl).replace(/\/$/, '');
   return { base, conf: parseFloat(confInput?.value || '0.25'), iou: parseFloat(iouInput?.value || '0.45'),
     maxDet: parseInt(maxDetInput?.value || '300'), device: deviceSelect?.value || 'auto',
-    model: customModelInput?.value?.trim() || currentModel, imgsz: parseInt(imgszInput?.value || '640'), half: halfCb?.checked };
+    model: customModelInput?.value?.trim() || currentModel,
+    imgsz: parseInt(imgszInput?.value || '640'),
+    half: halfCb?.checked,
+    textQueries: textQueriesInput?.value?.trim(),
+    question: vqaQuestionInput?.value?.trim(),
+  };
 }
 
 async function sendFrame() {
@@ -299,6 +329,8 @@ async function sendFrame() {
         if (p.device !== 'auto') u.searchParams.set('device', p.device);
         u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
         if (p.half) u.searchParams.set('half', '1');
+        if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
+        if (p.question) u.searchParams.set('question', p.question);
         const res = await fetch(u, { method: 'POST', body: fd });
         if (res.ok) handleResult(await res.json(), t0, p.device);
       }
@@ -318,7 +350,17 @@ function handleResult(data, t0, device) {
   statsEl.textContent = `推理: ${bt?.toFixed(0) || '-'}ms | RTT: ${rt.toFixed(0)}ms | ${detections.length} 目标`;
   if (showOverlayCb?.checked && overlayInfo) { overlayInfo.hidden = false; overlayInferTime.textContent = `${bt?.toFixed(0)}ms`; overlayObjects.textContent = detections.length; }
   else if (overlayInfo) overlayInfo.hidden = true;
-  if (data.caption) { captionResult.hidden = false; captionText.textContent = data.caption; } else captionResult.hidden = true;
+  if (data.caption) {
+    captionResult.hidden = false;
+    if (captionLabel) captionLabel.textContent = '图像描述';
+    captionText.textContent = data.caption;
+  } else if (data.answer) {
+    captionResult.hidden = false;
+    if (captionLabel) captionLabel.textContent = '视觉问答';
+    captionText.textContent = `问题：${data.question || ''}  回答：${data.answer}`;
+  } else {
+    captionResult.hidden = true;
+  }
   updateSidebar(data, device, bt);
 }
 
@@ -341,6 +383,9 @@ function initWS() {
   u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('max_det', p.maxDet);
   if (p.device !== 'auto') u.searchParams.set('device', p.device);
   u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
+  if (p.half) u.searchParams.set('half', '1');
+  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
+  if (p.question) u.searchParams.set('question', p.question);
   ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
   ws.onopen = () => { wsReady = true; showToast('WebSocket 已连接', 'success'); };
   ws.onmessage = e => { 
@@ -359,7 +404,12 @@ function closeWS() { try { ws?.close(); } catch {} ws = null; wsReady = false; }
 async function runImageInference(file) {
   const p = getParams(), fd = new FormData(); fd.append('file', file);
   const u = new URL(`${p.base}/infer`);
-  u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('model', p.model);
+  u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('max_det', p.maxDet);
+  if (p.device !== 'auto') u.searchParams.set('device', p.device);
+  u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
+  if (p.half) u.searchParams.set('half', '1');
+  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
+  if (p.question) u.searchParams.set('question', p.question);
   statsEl.textContent = '推理中...';
   try {
     const res = await fetch(u, { method: 'POST', body: fd });

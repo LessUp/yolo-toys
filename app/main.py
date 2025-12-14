@@ -10,13 +10,11 @@ import cv2
 import os
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Optional
 from app.model_manager import (
     model_manager,
     get_available_models,
     get_model_info,
-    MODEL_REGISTRY,
-    ModelCategory,
 )
 from app import __version__ as VERSION
 import uvicorn
@@ -26,6 +24,9 @@ ALLOW_ORIGINS = ["*"] if ALLOWED == "*" else [o.strip() for o in ALLOWED.split("
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 MAX_CONCURRENCY = int(os.getenv("MAX_CONCURRENCY", "4"))
 DEFAULT_MODEL = os.getenv("MODEL_NAME", "yolov8s.pt")
+DEFAULT_CONF = float(os.getenv("CONF_THRESHOLD", "0.25"))
+DEFAULT_IOU = float(os.getenv("IOU_THRESHOLD", "0.45"))
+DEFAULT_MAX_DET = int(os.getenv("MAX_DET", "300"))
 
 semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
@@ -94,7 +95,7 @@ async def _warmup_model():
         model_manager.load_model(DEFAULT_MODEL)
         # 预热推理
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        model_manager.infer(DEFAULT_MODEL, dummy, conf=0.3, iou=0.45)
+        model_manager.infer(DEFAULT_MODEL, dummy, conf=DEFAULT_CONF, iou=DEFAULT_IOU, max_det=DEFAULT_MAX_DET)
     except Exception as e:
         print(f"Warmup failed: {e}")
 
@@ -107,6 +108,11 @@ async def health():
         "version": VERSION,
         "device": model_manager.device,
         "default_model": DEFAULT_MODEL,
+        "defaults": {
+            "conf": DEFAULT_CONF,
+            "iou": DEFAULT_IOU,
+            "max_det": DEFAULT_MAX_DET,
+        },
     }
 
 
@@ -196,12 +202,13 @@ async def infer(
     
     async with semaphore:
         try:
-            result = model_manager.infer(
+            result = await asyncio.to_thread(
+                model_manager.infer,
                 model_id=model_id,
                 image=img,
-                conf=conf if conf is not None else 0.25,
-                iou=iou if iou is not None else 0.45,
-                max_det=max_det if max_det is not None else 300,
+                conf=conf if conf is not None else DEFAULT_CONF,
+                iou=iou if iou is not None else DEFAULT_IOU,
+                max_det=max_det if max_det is not None else DEFAULT_MAX_DET,
                 device=device,
                 imgsz=imgsz,
                 half=half if half is not None else False,
@@ -234,10 +241,12 @@ async def caption(
     
     async with semaphore:
         try:
-            result = model_manager.infer(
+            result = await asyncio.to_thread(
+                model_manager.infer,
                 model_id=model,
                 image=img,
             )
+            result["model"] = model
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -264,11 +273,13 @@ async def vqa(
     
     async with semaphore:
         try:
-            result = model_manager.infer(
+            result = await asyncio.to_thread(
+                model_manager.infer,
                 model_id=model,
                 image=img,
                 question=question,
             )
+            result["model"] = model
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -278,9 +289,9 @@ async def vqa(
 async def websocket_infer(websocket: WebSocket):
     """WebSocket 实时推理"""
     params = websocket.query_params
-    conf = _get_optional_float(params.get("conf")) or 0.25
-    iou = _get_optional_float(params.get("iou")) or 0.45
-    max_det = _get_optional_int(params.get("max_det")) or 300
+    conf = _get_optional_float(params.get("conf")) or DEFAULT_CONF
+    iou = _get_optional_float(params.get("iou")) or DEFAULT_IOU
+    max_det = _get_optional_int(params.get("max_det")) or DEFAULT_MAX_DET
     device = params.get("device") or None
     model_id = params.get("model") or DEFAULT_MODEL
     imgsz = _get_optional_int(params.get("imgsz"))

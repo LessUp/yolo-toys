@@ -1,13 +1,11 @@
 """
 多模型管理器 - 支持 YOLO、HuggingFace Transformers 和多模态模型
 """
-from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 import os
 import time
 import numpy as np
 from PIL import Image
-import io
 
 try:
     import torch
@@ -27,7 +25,6 @@ try:
         DetrImageProcessor,
         AutoProcessor,
         AutoModelForZeroShotObjectDetection,
-        pipeline,
         BlipProcessor,
         BlipForConditionalGeneration,
     )
@@ -240,6 +237,16 @@ class ModelManager:
         if self._device.startswith("cuda") and torch is not None:
             model = model.to("cuda")
         return model, processor
+
+    def _load_grounding_dino(self, model_id: str) -> Tuple[Any, Any]:
+        """加载 Grounding DINO 模型"""
+        if not HF_AVAILABLE:
+            raise RuntimeError("transformers not installed")
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
+        if self._device.startswith("cuda") and torch is not None:
+            model = model.to("cuda")
+        return model, processor
     
     def _load_blip_caption(self, model_id: str) -> Tuple[Any, Any]:
         """加载 BLIP 图像描述模型"""
@@ -292,6 +299,13 @@ class ModelManager:
         # OWL-ViT
         if category == ModelCategory.HF_OWLVIT:
             model, processor = self._load_owlvit(model_id)
+            self._models[model_id] = model
+            self._processors[model_id] = processor
+            return model
+
+        # Grounding DINO
+        if category == ModelCategory.HF_GROUNDING_DINO:
+            model, processor = self._load_grounding_dino(model_id)
             self._models[model_id] = model
             self._processors[model_id] = processor
             return model
@@ -534,6 +548,101 @@ class ModelManager:
             "task": "detect",
             "text_queries": text_queries,
         }
+
+    def infer_grounding_dino(
+        self,
+        model_id: str,
+        image: np.ndarray,
+        text_queries: List[str],
+        conf: float = 0.25,
+        text_threshold: float = 0.25,
+    ) -> Dict[str, Any]:
+        """Grounding DINO 开放集检测推理"""
+        if torch is None:
+            raise RuntimeError("torch not installed")
+
+        t0 = time.time()
+
+        model = self._models.get(model_id)
+        processor = self._processors.get(model_id)
+
+        if model is None or processor is None:
+            raise RuntimeError(f"Model {model_id} not loaded")
+
+        pil_image = Image.fromarray(image[:, :, ::-1])
+
+        labels: List[str] = []
+        for q in text_queries:
+            q = str(q).strip()
+            if not q:
+                continue
+            if q.lower().startswith(("a ", "an ", "the ")):
+                labels.append(q)
+            else:
+                labels.append(f"a {q}")
+        if not labels:
+            labels = ["a object"]
+
+        # 优先使用 list[list[str]] 的新格式；若不兼容则回退到句号分隔字符串
+        try:
+            inputs = processor(images=pil_image, text=[labels], return_tensors="pt")
+        except Exception:
+            text_str = ". ".join(labels)
+            if not text_str.endswith("."):
+                text_str += "."
+            inputs = processor(images=pil_image, text=text_str, return_tensors="pt")
+
+        if self._device != "cpu":
+            inputs = {k: (v.to(self._device) if hasattr(v, "to") else v) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        if not hasattr(processor, "post_process_grounded_object_detection"):
+            raise RuntimeError("transformers 版本过低，缺少 GroundingDINO 后处理方法")
+
+        results = processor.post_process_grounded_object_detection(
+            outputs=outputs,
+            input_ids=inputs.get("input_ids"),
+            threshold=float(conf),
+            text_threshold=float(text_threshold),
+            target_sizes=[pil_image.size[::-1]],
+            text_labels=[labels],
+        )
+        result = results[0] if results else {}
+
+        boxes = result.get("boxes")
+        scores = result.get("scores")
+        det_labels = result.get("labels") or result.get("text_labels") or []
+
+        boxes_np = boxes.detach().cpu().numpy() if hasattr(boxes, "detach") else np.zeros((0, 4), dtype=float)
+        scores_np = scores.detach().cpu().numpy() if hasattr(scores, "detach") else np.zeros((0,), dtype=float)
+
+        dets: List[Dict[str, Any]] = []
+        for i in range(int(scores_np.shape[0])):
+            raw_label = det_labels[i] if i < len(det_labels) else ""
+            if isinstance(raw_label, (list, tuple)):
+                label = ", ".join(str(x) for x in raw_label)
+            else:
+                label = str(raw_label)
+            dets.append(
+                {
+                    "bbox": [float(v) for v in boxes_np[i].tolist()],
+                    "score": float(scores_np[i]),
+                    "label": label,
+                }
+            )
+
+        elapsed = (time.time() - t0) * 1000.0
+        h, w = image.shape[:2]
+        return {
+            "width": w,
+            "height": h,
+            "detections": dets,
+            "inference_time": elapsed,
+            "task": "detect",
+            "text_queries": text_queries,
+        }
     
     def infer_caption(
         self,
@@ -649,6 +758,11 @@ class ModelManager:
         if category == ModelCategory.HF_OWLVIT:
             queries = text_queries or ["object"]
             return self.infer_owlvit(model_id, image, queries, conf)
+
+        # Grounding DINO
+        if category == ModelCategory.HF_GROUNDING_DINO:
+            queries = text_queries or ["object"]
+            return self.infer_grounding_dino(model_id, image, queries, conf)
         
         # BLIP Caption
         if category == ModelCategory.MULTIMODAL_CAPTION:
