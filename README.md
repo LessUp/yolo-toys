@@ -27,6 +27,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 使用 Docker Compose
 ```bash
+cp .env.example .env
 docker compose up --build -d
 # 停止
 docker compose down --remove-orphans
@@ -116,18 +117,19 @@ http://localhost:8000/
 ## API 参考
 - `POST /infer`
   - 查询参数（可选）：
-    - `conf` 浮点，置信度阈值，默认 0.3
+    - `conf` 浮点，置信度阈值，默认 0.25
     - `iou` 浮点，NMS IoU 阈值，默认 0.45
     - `max_det` 整数，最大检测数，默认 300
     - `device` 字符串，可选 `cpu`/`mps`/`cuda:0`；默认自动
     - `model` 字符串，模型名或路径（如 `yolov8s.pt`、`yolov8s-seg.pt`）
-    - `include` 字符串，逗号分隔，支持 `masks`、`keypoints`，用于控制返回体中是否包含掩膜/关键点（默认都包含）
     - `imgsz` 整数，推理尺寸（如 640），可加速/影响精度
     - `half` 布尔，是否使用 FP16（仅 CUDA 可用）
+    - `text_queries` 字符串，逗号分隔（用于 OWL-ViT / Grounding DINO 等开放词汇检测）
+    - `question` 字符串（用于 VQA 问答模型）
   - 表单数据：`file` 单张图像（JPEG/PNG 等）
   - 返回：
     - `width`、`height`：后端解析的输入图像尺寸
-    - `task`：`detect` | `segment` | `pose`
+    - `task`：`detect` | `segment` | `pose` | `caption` | `vqa`
     - `detections`：数组
       - `bbox`: [x1,y1,x2,y2]
       - `score`: 置信度
@@ -137,10 +139,10 @@ http://localhost:8000/
     - `inference_time`：毫秒
 
 - `GET /health`
-  - 返回运行时信息（默认模型、设备、阈值等）与推荐模型列表
+  - 返回运行状态、版本、设备、默认模型与默认阈值（`defaults`）
 
 - `GET /models`
-  - 返回 `default` 与 `models`（推荐模型名）
+  - 返回 `default` 与 `categories`（按类别分组的模型列表）
 
 - `GET /labels`
   - 查询参数：`model`（可选），返回该模型的类别标签列表
@@ -152,7 +154,7 @@ http://localhost:8000/
   - 前端在“WebSocket”开关开启时自动使用 WS，否则回退 HTTP
 
 ## 说明与建议
-- 默认使用 `YOLOv8n`（轻量，速度更快）。可在 `app/inference.py` 中将 `"yolov8n.pt"` 替换为 `yolov8s.pt` 等模型。
+- 默认模型为 `yolov8s.pt`（精度更高，可通过 `MODEL_NAME` 覆盖）。
 - 若是 Apple Silicon（M1/M2/M3），安装的 `torch` 会自动使用 CPU/MPS（Metal）后端（若可用）。
 - 可通过前端“发送帧率”下拉选择调节与后端交互频率，平衡带宽与延迟。
 - 若想跨端访问（手机访问），确保设备与电脑在同一局域网，使用电脑的局域网 IP 访问 `http://<LAN_IP>:8000/`。
@@ -171,8 +173,9 @@ docker build -t vision-det .
 2) 运行容器（CPU 示例）：
 ```
 docker run --rm -it -p 8000:8000 \
+  -e PORT=8000 \
   -e MODEL_NAME=yolov8s.pt \
-  -e CONF_THRESHOLD=0.3 \
+  -e CONF_THRESHOLD=0.25 \
   -e IOU_THRESHOLD=0.45 \
   -e DEVICE=cpu \
   vision-det
@@ -181,9 +184,10 @@ docker run --rm -it -p 8000:8000 \
 GPU（NVIDIA）示例：
 ```
 docker run --rm -it -p 8000:8000 \
+  -e PORT=8000 \
   --gpus all \
   -e MODEL_NAME=yolov8s.pt \
-  -e CONF_THRESHOLD=0.3 \
+  -e CONF_THRESHOLD=0.25 \
   -e IOU_THRESHOLD=0.45 \
   -e DEVICE=cuda:0 \
   vision-det
@@ -196,8 +200,9 @@ http://localhost:8000/
 
 ## 配置
 - 后端环境变量（在 shell、.env 或 Docker -e 中设置）：
+  - `PORT`：服务端口，默认 `8000`
   - `MODEL_NAME`：默认 `yolov8s.pt`（精度更高，推荐在有 GPU 时使用）
-  - `CONF_THRESHOLD`：默认 `0.3`
+  - `CONF_THRESHOLD`：默认 `0.25`
   - `IOU_THRESHOLD`：默认 `0.45`
   - `MAX_DET`：默认 `300`
   - `DEVICE`：可选 `cuda:0`、`mps`、`cpu`，默认自动选择（CUDA/MPS/CPU）

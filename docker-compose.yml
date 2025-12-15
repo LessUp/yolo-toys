@@ -4,9 +4,11 @@ services:
     build: .
     image: vision-det:latest
     container_name: vision-det
+    restart: unless-stopped
     environment:
+      - PORT=${PORT:-8000}
       - MODEL_NAME=${MODEL_NAME:-yolov8s.pt}
-      - CONF_THRESHOLD=${CONF_THRESHOLD:-0.3}
+      - CONF_THRESHOLD=${CONF_THRESHOLD:-0.25}
       - IOU_THRESHOLD=${IOU_THRESHOLD:-0.45}
       - MAX_DET=${MAX_DET:-300}
       - DEVICE=${DEVICE:-}
@@ -15,8 +17,14 @@ services:
       - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-10}
       - MAX_CONCURRENCY=${MAX_CONCURRENCY:-4}
     ports:
-      - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - model-cache:/root/.cache
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.getenv('PORT','8000'), timeout=2)" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     # volumes:
     #   - ./:/app:ro
     # deploy:
@@ -24,3 +32,6 @@ services:
     #     reservations:
     #       devices:
     #         - capabilities: [gpu]
+
+volumes:
+  model-cache:

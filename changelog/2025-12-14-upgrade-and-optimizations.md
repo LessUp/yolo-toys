@@ -14,3 +14,9 @@
   - HTTP `/infer` 与 WebSocket `/ws` 请求同步携带 `text_queries`/`question`/`half`/`imgsz`/`max_det` 等参数。
   - 支持在 WebSocket 运行时发送 `config` 消息动态更新模型与推理参数。
   - 在界面统一展示 Caption 与 VQA 结果（使用同一信息面板）。
+- 易部署增强：
+  - Dockerfile：支持 `PORT` 环境变量启动；将仓库内 `yolov8*.pt` 权重复制进镜像，减少首次联网依赖。
+  - docker-compose：增加 `restart: unless-stopped`、`healthcheck` 与缓存卷（`model-cache:/root/.cache`），并支持动态端口映射。
+  - `.env.example`：补齐 `PORT`、`ALLOW_ORIGINS`、`MAX_UPLOAD_MB`、`MAX_CONCURRENCY` 等常用部署配置。
+  - Makefile：`docker-run` 默认使用 `ENV_FILE?=.env.example`，并传递/映射 `PORT` 以适配容器启动方式。
+  - README：补齐一键部署（`cp .env.example .env`）与 API 描述，保证与当前实现一致。

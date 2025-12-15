@@ -4,6 +4,7 @@ UVICORN?=uvicorn
 APP=app.main:app
 PORT?=8000
 HOST?=0.0.0.0
+ENV_FILE?=.env.example
 
 .PHONY: help
 help:
@@ -37,7 +38,7 @@ docker-build:
 
 .PHONY: docker-run
 docker-run:
-	docker run --rm -it -p $(PORT):8000 --env-file .env vision-det:latest
+	docker run --rm -it -p $(PORT):$(PORT) -e PORT=$(PORT) --env-file $(ENV_FILE) vision-det:latest
 
 .PHONY: compose-up
 compose-up:
