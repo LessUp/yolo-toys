@@ -391,7 +391,7 @@ YOLO-Toys/
 项目已经内置了一些工程化工具，建议你在改动后经常跑：
 
 - `make lint`：运行 pre-commit，执行 Black / Ruff / isort 等检查和自动修复；
-- `make test`：执行 pytest，验证基础接口仍然正常；
+- `make test`：执行 `python -m pytest`，验证基础接口仍然正常；
 - `make run`：本地开发启动 Uvicorn，调试前后端联动。
 
 如果你增加了新的 Python 模块或测试：

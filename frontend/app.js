@@ -36,6 +36,9 @@ const showOverlayCb = document.getElementById('showOverlay');
 const maskAlphaInput = document.getElementById('maskAlpha');
 const textQueriesInput = document.getElementById('textQueries');
 const vqaQuestionInput = document.getElementById('vqaQuestion');
+const multimodalSection = document.getElementById('multimodalSection');
+const textQueriesGroup = textQueriesInput?.closest('.form-group');
+const vqaQuestionGroup = vqaQuestionInput?.closest('.form-group');
 const detectionsSidebar = document.getElementById('detectionsSidebar');
 const classCountsEl = document.getElementById('classCounts');
 const summaryTotalEl = document.getElementById('summaryTotal');
@@ -58,6 +61,7 @@ let baseUrl = window.location.origin, sendWidth = 640;
 let lastInferSize = { width: 1, height: 1 }, lastTask = 'detect';
 let ws = null, wsReady = false, currentModel = 'yolov8s.pt', currentCategory = 'yolo_detect';
 let modelCategories = {};
+let modelIdToCategory = {};
 
 const toastContainer = document.getElementById('toastContainer');
 
@@ -121,6 +125,7 @@ function applySettings() {
   if (s.textQueries !== undefined && textQueriesInput) textQueriesInput.value = s.textQueries;
   if (s.vqaQuestion !== undefined && vqaQuestionInput) vqaQuestionInput.value = s.vqaQuestion;
   updateVars();
+  updateTaskControls();
 }
 
 function updateVars() {
@@ -163,6 +168,54 @@ function updateVars() {
  maskAlphaInput, useWsCb, textQueriesInput, vqaQuestionInput].forEach(el => el?.addEventListener('change', updateVars));
 
 // Models
+function rebuildModelIndex() {
+  modelIdToCategory = {};
+  Object.entries(modelCategories || {}).forEach(([cat, data]) => {
+    data.models?.forEach(m => { modelIdToCategory[m.id] = cat; });
+  });
+}
+
+function setActiveTab(cat) {
+  modelTabs?.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+}
+
+function syncCategoryFromModel() {
+  const backendCat = modelIdToCategory[currentModel];
+  if (backendCat) currentCategory = backendCat.startsWith('multimodal') ? 'multimodal' : backendCat;
+  setActiveTab(currentCategory);
+}
+
+function updateTaskControls() {
+  const backendCat = modelIdToCategory[currentModel] || '';
+  const showTextQueries =
+    currentCategory === 'hf_owlvit' ||
+    currentCategory === 'hf_grounding_dino' ||
+    backendCat === 'hf_owlvit' ||
+    backendCat === 'hf_grounding_dino';
+  const showVqaQuestion =
+    (currentCategory === 'multimodal' || backendCat === 'multimodal_vqa') && backendCat !== 'multimodal_caption';
+
+  const showSection = showTextQueries || showVqaQuestion;
+  if (multimodalSection) multimodalSection.style.display = showSection ? '' : 'none';
+  if (textQueriesGroup) textQueriesGroup.style.display = showTextQueries ? '' : 'none';
+  if (vqaQuestionGroup) vqaQuestionGroup.style.display = showVqaQuestion ? '' : 'none';
+}
+
+function setModel(modelId) {
+  currentModel = modelId;
+  syncCategoryFromModel();
+  renderModels();
+  updateTaskControls();
+  updateVars();
+}
+
+function setCategory(cat) {
+  currentCategory = cat;
+  setActiveTab(currentCategory);
+  renderModels();
+  updateTaskControls();
+}
+
 async function loadModels() {
   const base = (serverInput?.value?.trim() || baseUrl).replace(/\/$/, '');
   try {
@@ -176,7 +229,10 @@ async function loadModels() {
       yolo_pose: { name: '姿态', models: [{ id: 'yolov8s-pose.pt', name: 'YOLOv8 Pose' }] }
     };
   }
+  rebuildModelIndex();
+  syncCategoryFromModel();
   renderModels();
+  updateTaskControls();
 }
 
 function renderModels() {
@@ -209,7 +265,7 @@ function renderModels() {
         item.className = `model-item${m.id === currentModel ? ' selected' : ''}`;
         item.dataset.model = m.id;
         item.innerHTML = `<div class="model-item-name">${m.name}</div><div class="model-item-desc">${m.description || ''}</div>${m.speed ? `<div class="model-item-meta"><span>速度: ${m.speed}</span><span>精度: ${m.accuracy || '-'}</span></div>` : ''}`;
-        item.onclick = () => { currentModel = m.id; renderModels(); updateVars(); showToast(`已选择 ${m.name}`, 'info'); };
+        item.onclick = () => { setModel(m.id); showToast(`已选择 ${m.name}`, 'info'); };
         modelList.appendChild(item);
       }
     });
@@ -221,16 +277,9 @@ function renderModels() {
   }
 }
 
-modelTabs?.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentCategory = btn.dataset.cat;
-    modelTabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderModels();
-  });
-});
+modelTabs?.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => setCategory(btn.dataset.cat)));
 
-quickModelSelect?.addEventListener('change', () => { currentModel = quickModelSelect.value; renderModels(); updateVars(); });
+quickModelSelect?.addEventListener('change', () => setModel(quickModelSelect.value));
 
 // Camera
 async function setupCamera() {

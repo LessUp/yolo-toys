@@ -26,7 +26,7 @@ lint:
 
 .PHONY: test
 test:
-	SKIP_WARMUP=1 pytest -q
+	SKIP_WARMUP=1 $(PY) -m pytest
 
 .PHONY: run
 run:

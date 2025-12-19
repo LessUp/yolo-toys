@@ -29,6 +29,8 @@ def mock_infer(monkeypatch):
 
     def fake_infer(*, model_id: str, image, text_queries=None, question=None, **kwargs):
         h, w = image.shape[:2]
+        if model_id == "unknown":
+            raise ValueError("Unknown model category for unknown")
         if model_id.startswith("Salesforce/blip-image-captioning"):
             return {
                 "width": w,
@@ -91,6 +93,14 @@ def test_infer_endpoint(client: TestClient, image_bytes: bytes, mock_infer):
     assert data.get("model") == "yolov8n.pt"
     assert data.get("task") == "detect"
     assert isinstance(data.get("detections"), list)
+
+
+def test_infer_unknown_model_returns_400(client: TestClient, image_bytes: bytes, mock_infer):
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?model=unknown", files=files)
+    assert r.status_code == 400
+    data = r.json()
+    assert "Unknown model category" in data.get("detail", "")
 
 
 def test_caption_endpoint(client: TestClient, image_bytes: bytes, mock_infer):

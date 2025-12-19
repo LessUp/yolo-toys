@@ -16,6 +16,7 @@ from app.model_manager import (
     get_available_models,
     get_model_info,
 )
+from app.schemas import InferenceResponse
 from app import __version__ as VERSION
 import uvicorn
 
@@ -86,6 +87,23 @@ def _get_optional_bool(value: Optional[str]) -> Optional[bool]:
     return None
 
 
+async def _read_upload_image(file: UploadFile) -> np.ndarray:
+    if file.content_type is None or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid content type")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large")
+
+    nparr = np.frombuffer(data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Failed to decode image")
+    return img
+
+
 @app.on_event("startup")
 async def _warmup_model():
     """启动时预热默认模型"""
@@ -95,7 +113,13 @@ async def _warmup_model():
         model_manager.load_model(DEFAULT_MODEL)
         # 预热推理
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        model_manager.infer(DEFAULT_MODEL, dummy, conf=DEFAULT_CONF, iou=DEFAULT_IOU, max_det=DEFAULT_MAX_DET)
+        model_manager.infer(
+            model_id=DEFAULT_MODEL,
+            image=dummy,
+            conf=DEFAULT_CONF,
+            iou=DEFAULT_IOU,
+            max_det=DEFAULT_MAX_DET,
+        )
     except Exception as e:
         print(f"Warmup failed: {e}")
 
@@ -156,7 +180,7 @@ async def labels(model: Optional[str] = Query(default=None)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/infer")
+@app.post("/infer", response_model=InferenceResponse, response_model_exclude_none=True)
 async def infer(
     file: UploadFile = File(...),
     conf: Optional[float] = Query(default=None, description="置信度阈值"),
@@ -179,19 +203,8 @@ async def infer(
     - BLIP 图像描述
     - BLIP VQA 视觉问答
     """
-    if file.content_type is None or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid content type")
-    
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Empty file")
-    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large")
-    
-    nparr = np.frombuffer(data, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(status_code=400, detail="Failed to decode image")
+
+    img = await _read_upload_image(file)
     
     model_id = model or DEFAULT_MODEL
     
@@ -217,27 +230,20 @@ async def infer(
             )
             result["model"] = model_id
             return result
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/caption")
+@app.post("/caption", response_model=InferenceResponse, response_model_exclude_none=True)
 async def caption(
     file: UploadFile = File(...),
     model: Optional[str] = Query(default="Salesforce/blip-image-captioning-base"),
 ):
     """图像描述生成"""
-    if file.content_type is None or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid content type")
-    
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Empty file")
-    
-    nparr = np.frombuffer(data, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(status_code=400, detail="Failed to decode image")
+
+    img = await _read_upload_image(file)
     
     async with semaphore:
         try:
@@ -248,28 +254,21 @@ async def caption(
             )
             result["model"] = model
             return result
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/vqa")
+@app.post("/vqa", response_model=InferenceResponse, response_model_exclude_none=True)
 async def vqa(
     file: UploadFile = File(...),
     question: str = Query(..., description="要问的问题"),
     model: Optional[str] = Query(default="Salesforce/blip-vqa-base"),
 ):
     """视觉问答"""
-    if file.content_type is None or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid content type")
-    
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Empty file")
-    
-    nparr = np.frombuffer(data, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(status_code=400, detail="Failed to decode image")
+
+    img = await _read_upload_image(file)
     
     async with semaphore:
         try:
@@ -281,6 +280,8 @@ async def vqa(
             )
             result["model"] = model
             return result
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

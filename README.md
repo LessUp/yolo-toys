@@ -232,7 +232,7 @@ pre-commit install
 - 代码检查与测试：
 ```
 pre-commit run --all-files
-pytest -q
+python -m pytest
 ```
 - 代码风格：Black + Ruff + isort（见 `pyproject.toml`）
 - 贡献指南：见 `CONTRIBUTING.md`，行为准则见 `CODE_OF_CONDUCT.md`，安全披露见 `SECURITY.md`

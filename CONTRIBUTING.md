@@ -12,7 +12,7 @@ Thanks for your interest in contributing!
    - `pre-commit install`
 4. Run checks locally:
    - `pre-commit run --all-files`
-   - `pytest -q`
+   - `python -m pytest`
 5. Commit, push, and open a Pull Request.
 
 ## Guidelines

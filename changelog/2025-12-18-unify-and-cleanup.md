@@ -20,3 +20,17 @@
 
 - 补齐核心接口测试覆盖：
   - 更新 `tests/test_api.py`：新增 `/infer`、`/caption`、`/vqa` 的基础 smoke tests，并通过 `monkeypatch` mock `model_manager.infer`，避免测试依赖真实模型下载/推理。
+
+- 后端契约与一致性增强：
+  - 更新 `app/main.py`：为 `/infer`、`/caption`、`/vqa` 增加 `response_model=InferenceResponse`（并启用 `response_model_exclude_none`），统一返回结构约束。
+  - 更新 `app/main.py`：抽取 `_read_upload_image` 统一图片读取/解码与 `MAX_UPLOAD_MB` 大小限制校验，补齐 `/caption`、`/vqa` 与 `/infer` 的行为一致性。
+  - 更新 `app/main.py`：启动预热推理调用统一为关键字参数传递；并将模型/参数类 `ValueError` 映射为 HTTP 400（不再返回 500），提升 API 契约语义一致性。
+
+- 测试命令可移植性优化：
+  - 更新 `Makefile`：`make test` 改为执行 `python -m pytest`，避免环境缺少 `pytest` 可执行文件导致失败。
+  - 更新 `README.md`：测试示例命令同步改为 `python -m pytest`。
+  - 更新 `docs/README.md`：`make test` 说明同步为执行 `python -m pytest`。
+  - 更新 `.github/workflows/ci.yml` 与 `CONTRIBUTING.md`：测试命令同步为 `python -m pytest`。
+
+- 前端交互一致性增强：
+  - 更新 `frontend/app.js`：构建 `model_id -> category` 索引；选择模型时自动同步标签页；并根据当前模型类别动态显示/隐藏“开放词汇查询 / VQA 问题”输入，减少无关配置干扰。

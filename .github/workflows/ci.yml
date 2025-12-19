@@ -33,4 +33,4 @@ jobs:
         env:
           SKIP_WARMUP: '1'
         run: |
-          pytest -q
+          python -m pytest
