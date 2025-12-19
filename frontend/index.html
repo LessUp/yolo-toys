@@ -101,6 +101,8 @@
             <button class="tab-btn" data-cat="yolo_segment" title="像素级实例分割">分割</button>
             <button class="tab-btn" data-cat="yolo_pose" title="人体关键点检测">姿态</button>
             <button class="tab-btn" data-cat="hf_detr" title="Transformer 检测器">DETR</button>
+            <button class="tab-btn" data-cat="hf_owlvit" title="开放词汇检测（文本提示）">OWL-ViT</button>
+            <button class="tab-btn" data-cat="hf_grounding_dino" title="开放词汇检测（文本提示）">Grounding DINO</button>
             <button class="tab-btn" data-cat="multimodal" title="图像描述和问答">多模态</button>
           </div>
           <div class="model-list" id="modelList"></div>
@@ -139,7 +141,7 @@
 
         <div class="settings-section" id="multimodalSection">
           <h3>💬 多模态设置</h3>
-          <div class="form-group"><label>开放词汇查询 <span class="help-text" title="用于 OWL-ViT 检测，逗号分隔">(?)</span></label><input id="textQueries" type="text" placeholder="person, car, dog" /></div>
+          <div class="form-group"><label>开放词汇查询 <span class="help-text" title="用于 OWL-ViT / Grounding DINO 检测，逗号分隔">(?)</span></label><input id="textQueries" type="text" placeholder="person, car, dog" /></div>
           <div class="form-group"><label>VQA 问题 <span class="help-text" title="对图像提问">(?)</span></label><input id="vqaQuestion" type="text" placeholder="What is in this image?" /></div>
         </div>
       </div>

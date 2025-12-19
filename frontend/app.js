@@ -347,7 +347,8 @@ function handleResult(data, t0, device) {
   detections = data.detections || [];
   if (data.width && data.height) lastInferSize = { width: data.width, height: data.height };
   const rt = performance.now() - t0, bt = data.inference_time;
-  statsEl.textContent = `推理: ${bt?.toFixed(0) || '-'}ms | RTT: ${rt.toFixed(0)}ms | ${detections.length} 目标`;
+  const summary = data.caption ? '图像描述' : (data.answer ? '视觉问答' : `${detections.length} 目标`);
+  statsEl.textContent = `推理: ${bt?.toFixed(0) || '-'}ms | RTT: ${rt.toFixed(0)}ms | ${summary}`;
   if (showOverlayCb?.checked && overlayInfo) { overlayInfo.hidden = false; overlayInferTime.textContent = `${bt?.toFixed(0)}ms`; overlayObjects.textContent = detections.length; }
   else if (overlayInfo) overlayInfo.hidden = true;
   if (data.caption) {
@@ -411,19 +412,19 @@ async function runImageInference(file) {
   if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
   if (p.question) u.searchParams.set('question', p.question);
   statsEl.textContent = '推理中...';
+  const t0 = performance.now();
   try {
     const res = await fetch(u, { method: 'POST', body: fd });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    handleResult(data, t0, p.device);
     const img = new Image();
     img.onload = () => { 
       canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0); 
-      detections = data.detections || []; 
-      lastInferSize = { width: data.width || img.width, height: data.height || img.height }; 
       drawDetections(); emptyState.style.display = 'none'; 
-      statsEl.textContent = `完成: ${detections.length} 目标 | ${data.inference_time?.toFixed(0) || '-'}ms`; 
-      updateSidebar(data, p.device, data.inference_time);
-      showToast(`检测到 ${detections.length} 个目标`, 'success');
+      if (data.caption) showToast('图像描述已生成', 'success');
+      else if (data.answer) showToast('视觉问答已生成', 'success');
+      else showToast(`检测到 ${detections.length} 个目标`, 'success');
     };
     img.src = URL.createObjectURL(file);
   } catch (e) { 

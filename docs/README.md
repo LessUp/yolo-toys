@@ -6,11 +6,11 @@
 
 ## 1. 项目简介
 
-YOLO-Toys 是一个基于 **FastAPI + Ultralytics YOLOv8 + 原生前端** 的实时目标检测 Demo：
+YOLO-Toys 是一个基于 **FastAPI + Ultralytics YOLOv8 + HuggingFace Transformers + 原生前端** 的多模型实时视觉识别 Demo：
 
-- 后端使用 FastAPI 提供 `/infer`、`/health`、`/models`、`/labels`、`/ws` 等接口。
-- 模型侧通过 Ultralytics YOLOv8 完成检测 / 分割 / 姿态估计。
-- 前端用浏览器摄像头 / 本地图片，实时把图像发给后端，并在 Canvas 上绘制检测框、掩膜、关键点与骨架。
+- 后端使用 FastAPI 提供 `/infer`、`/caption`、`/vqa`、`/health`、`/models`、`/labels`、`/ws` 等接口。
+- 模型侧同时支持 YOLO 检测 / 分割 / 姿态估计，以及 Transformers 系列的 DETR、开放词汇检测（OWL-ViT / Grounding DINO）与多模态（BLIP Caption / VQA）。
+- 前端用浏览器摄像头 / 本地图片，实时把图像发给后端，并在 Canvas 上绘制检测框、掩膜、关键点与骨架；对于 Caption / VQA 任务会展示文本输出。
 - 工程层面提供 Docker、docker-compose、Makefile、pre-commit、pytest 等，方便你把它当成一个“小而全”的学习项目。
 
 本教学文档的目标：
@@ -27,6 +27,8 @@ YOLO-Toys 是一个基于 **FastAPI + Ultralytics YOLOv8 + 原生前端** 的实
   - Python 3.11
   - FastAPI / Uvicorn
   - Ultralytics YOLOv8
+  - PyTorch (torch)
+  - HuggingFace Transformers (+ accelerate)
   - OpenCV (opencv-python-headless)
   - NumPy, Pillow
 
@@ -107,7 +109,7 @@ docker compose down --remove-orphans
 YOLO-Toys/
 ├─ app/
 │  ├─ main.py          # FastAPI 入口，挂载路由和静态前端
-│  ├─ inference.py     # YOLOv8 推理逻辑与设备选择
+│  ├─ model_manager.py # 多模型管理器（YOLO/HF/多模态）
 │  └─ schemas.py       # Pydantic 模型（推理返回结构）
 ├─ frontend/
 │  ├─ index.html       # 单页前端入口
@@ -146,37 +148,36 @@ YOLO-Toys/
 
 - `GET /health`：健康检查，返回运行状态、默认模型、设备等信息。 
 - `POST /infer`：单张图片推理（表单 `file`，返回检测结果 JSON）。
+- `POST /caption`：图像描述生成（表单 `file`，返回 caption）。
+- `POST /vqa`：视觉问答（表单 `file` + 查询参数 `question`，返回 answer）。
 - `GET /models`：返回推荐模型列表及默认模型名。
 - `GET /labels`：根据模型返回所有类别标签列表。
 - `WEBSOCKET /ws`：二进制 JPEG 帧实时推理，返回推理结果 JSON。
 
-这些路由内部大多调用 `app.inference.infer` 来真正执行 YOLO 推理。
+这些路由内部统一调用 `app.model_manager.model_manager.infer` 来执行对应模型的推理逻辑，并返回统一结构的结果。
 
-### 5.2 推理逻辑：`app/inference.py`
+### 5.2 推理逻辑：`app/model_manager.py`
 
-`inference.py` 负责：
+`model_manager.py` 负责：
 
-- 从环境变量读取默认模型名、置信度、IoU 阈值、最大检测数、设备等：
-  - `MODEL_NAME`
-  - `CONF_THRESHOLD`
-  - `IOU_THRESHOLD`
-  - `MAX_DET`
-  - `DEVICE`
-- 根据当前环境选择设备（CUDA / MPS / CPU）。
-- 使用 LRU 缓存加载 YOLOv8 模型，避免重复加载：
-  - `load_model(name: str) -> YOLO`
-- 执行推理并把 Ultralytics 的结果转换成一个干净的 JSON 结构：
-  - `bbox`: `[x1, y1, x2, y2]`
-  - `score`: 置信度
-  - `label`: 类别名
-  - `polygons`: 分割掩膜多边形列表（可选）
-  - `keypoints`: 姿态关键点（可选）
+- 维护 `MODEL_REGISTRY`：定义各模型的类别、名称与说明，用于 `/models` 按类别输出。
+- 提供 `ModelManager`：
+  - `load_model(model_id)`：按需加载并缓存 YOLO / Transformers 模型与 Processor。
+  - `infer(model_id, image, ...)`：统一推理入口，根据模型类别分发到：
+    - YOLO 检测 / 分割 / 姿态（`infer_yolo`）
+    - DETR 检测（`infer_detr`）
+    - 开放词汇检测：OWL-ViT / Grounding DINO（`infer_owlvit` / `infer_grounding_dino`，需要 `text_queries`）
+    - 多模态：Caption / VQA（`infer_caption` / `infer_vqa`）
+- 统一返回结构：
+  - 检测类任务返回 `detections`（bbox/score/label，可选 polygons/keypoints）
+  - Caption 返回 `caption`
+  - VQA 返回 `question` 与 `answer`
+  - 开放词汇检测会回显 `text_queries`
 
 你可以在这里尝试：
 
-- 修改默认模型为 `yolov8s.pt` 或 `yolov8n-seg.pt`；
-- 调整默认置信度阈值与 IoU，观察检测结果变化；
-- 学习如何从 Ultralytics `results` 对象中读取 boxes / masks / keypoints。
+- 切换 `MODEL_NAME` 或在前端选择不同类别模型，观察 `task` 与返回字段的变化。
+- 对开放词汇检测模型设置 `text_queries`（逗号分隔），观察检测结果与类别标签变化。
 
 ### 5.3 后端配置与环境变量
 
@@ -321,13 +322,16 @@ YOLO-Toys/
 后端使用 Pydantic 模型 `InferenceResponse` 约束 `/infer` 等接口的返回结构：
 
 - `width: int` / `height: int`：后端实际解析的图像尺寸；
-- `task: "detect" | "segment" | "pose"`：当前推理任务类型；
-- `detections: List[Detection]`：每个检测目标；
+- `task: "detect" | "segment" | "pose" | "caption" | "vqa"`：当前推理任务类型；
+- `detections: List[Detection]`：每个检测目标（在 `caption`/`vqa` 任务中通常为空数组）；
   - `bbox: List[float]`：边界框 `[x1, y1, x2, y2]`；
   - `score: float`：置信度；
   - `label: str`：类别名；
   - `polygons?: List[List[float]]`：分割掩膜多边形坐标；
   - `keypoints?: List[List[float]]`：姿态关键点坐标；
+- `caption?: str`：在 `caption` 任务中返回的图像描述文本；
+- `question?: str` / `answer?: str`：在 `vqa` 任务中返回的问题与答案；
+- `text_queries?: List[str]`：开放词汇检测模型的文本查询列表（用于 OWL-ViT / Grounding DINO 等）。
 - `inference_time: float`：后端推理时间（毫秒）；
 - `model: Optional[str]`：使用的模型名；
 - `params: Optional[Dict[str, Any]]`：此次请求的参数快照。

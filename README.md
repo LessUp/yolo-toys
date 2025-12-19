@@ -83,8 +83,7 @@ make compose-down  # docker compose down
 YOLO-Toys/
 ├─ app/
 │  ├─ main.py           # FastAPI 入口，统一推理接口
-│  ├─ model_manager.py  # 多模型管理器（新增）
-│  ├─ inference.py      # YOLOv8 推理逻辑（兼容）
+│  ├─ model_manager.py  # 多模型管理器（YOLO/HF/多模态）
 │  └─ schemas.py        # Pydantic 返回结构
 ├─ frontend/
 │  ├─ index.html        # 全新 UI 设计

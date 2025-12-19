@@ -1,5 +1,6 @@
-from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class Detection(BaseModel):
@@ -13,8 +14,12 @@ class Detection(BaseModel):
 class InferenceResponse(BaseModel):
     width: int
     height: int
-    detections: List[Detection]
+    detections: List[Detection] = Field(default_factory=list)
     inference_time: float
-    task: Literal["detect", "segment", "pose"]
+    task: Literal["detect", "segment", "pose", "caption", "vqa"]
+    caption: Optional[str] = None
+    question: Optional[str] = None
+    answer: Optional[str] = None
+    text_queries: Optional[List[str]] = None
     model: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
