@@ -61,6 +61,9 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -U pip
 .venv/bin/pip install -r requirements.txt
 
+# （可选）安装开发依赖（用于运行测试/代码规范检查）
+.venv/bin/pip install -r requirements-dev.txt
+
 # 启动服务
 .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -116,7 +119,7 @@ YOLO-Toys/
 │  ├─ style.css        # 基础暗色 UI + 布局样式
 │  └─ app.js           # 前端核心逻辑（摄像头、本地图片、推理、绘制、侧边栏）
 ├─ tests/
-│  └─ test_api.py      # 对 /health、/models 的基础 API 测试
+│  └─ test_api.py      # 对 /health、/models、/infer、/caption、/vqa 的基础 API 测试
 ├─ docs/
 │  └─ README.md        # 本教学文档
 ├─ Dockerfile
@@ -245,13 +248,13 @@ YOLO-Toys/
 
 1. **状态与设置管理**：
    - 一系列 `const xxx = document.getElementById(...)` 获取 DOM 节点。
-   - `loadSettings` / `saveSettings` / `updateSetting`：把用户在页面上的选择保存在 `localStorage` 中，实现简单的“记忆上次设置”。
+   - `loadSettings` / `saveSettings`：把用户在页面上的选择保存在 `localStorage` 中，实现简单的“记忆上次设置”。
    - `applySettings`：页面加载时应用上次保存的设置。
 
-2. **摄像头权限与预检查**：
-   - `preflightCameraCheck`：检查浏览器是否支持 `getUserMedia`，以及当前是否是安全上下文（HTTPS 或 localhost）。
-   - `monitorCameraPermission` + `applyPermissionState`：监听浏览器权限状态变更，在页面上给出友好的提示信息。
-   - `handleCameraError`：根据不同错误类型给出针对性的消息（未授权 / 无设备 / 其他）。
+2. **界面交互与主题**：
+   - 设置面板：通过 `settingsOverlay` 的打开/关闭状态展示详细设置。
+   - 侧边栏：支持折叠/展开，在小屏幕下以抽屉方式显示。
+   - 主题切换：`setTheme` 切换 `data-theme` 并持久化到 `localStorage`。
 
 3. **摄像头采集与绘制**：
    - `setupCamera`：
@@ -265,7 +268,7 @@ YOLO-Toys/
 4. **推理结果渲染**：`drawDetections`
    - 对每个检测对象：
      - 根据后端返回的坐标和当前 Canvas 尺寸计算缩放比例；
-     - 根据标签生成稳定的颜色（HSL 色相哈希）；
+     - 根据标签哈希映射到固定调色板颜色；
      - 绘制：
        - 掩膜填充（可选）
        - 边框与标签背景矩形
@@ -283,9 +286,9 @@ YOLO-Toys/
      - 更新 `detections` / `lastInferSize` / `lastTask` 等前端状态；
      - 计算后端耗时与往返时间；
      - 更新 `#stats` 文本状态栏；
-     - 调用 `updateDetectionsSidebar` 更新右侧概览。
-   - `initWebSocket` / `closeWebSocket`：
-     - 负责建立 WebSocket 连接，将查询参数（conf、iou、max_det、device、model、include、imgsz、half）一并附在 URL 上。
+     - 调用 `updateSidebar` 更新右侧概览。
+   - `initWS` / `closeWS`：
+     - 负责建立 WebSocket 连接，将查询参数（conf、iou、max_det、device、model、imgsz、half、text_queries、question）一并附在 URL 上。
 
 6. **本地图片上传推理：`runImageInference`**
 
@@ -298,13 +301,13 @@ YOLO-Toys/
   - 调用 `POST /infer`，拿到 JSON 结果；
   - 使用 `Image` 对象在 Canvas 上绘制本地图片；
   - 更新 `detections` 与 `lastInferSize` 并调用 `drawDetections` 进行可视化；
-  - 统计耗时并更新 `#stats` 与右侧的 `updateDetectionsSidebar`。
+  - 统计耗时并更新 `#stats` 与右侧的 `updateSidebar`。
 
 你可以把这个函数当作一个“最小闭环”：
 
 1. 从本地文件读取 → 2. 发给后端 → 3. YOLO 推理 → 4. 返回 JSON → 5. 在前端画出来。
 
-7. **检测概览与类别计数：`updateDetectionsSidebar`**
+7. **检测概览与类别计数：`updateSidebar`**
 
 - 每当推理结果更新（不论是摄像头还是本地图片），都会调用该函数。 
 - 它会：
@@ -334,7 +337,6 @@ YOLO-Toys/
 - `text_queries?: List[str]`：开放词汇检测模型的文本查询列表（用于 OWL-ViT / Grounding DINO 等）。
 - `inference_time: float`：后端推理时间（毫秒）；
 - `model: Optional[str]`：使用的模型名；
-- `params: Optional[Dict[str, Any]]`：此次请求的参数快照。
 
 在前端的 `handleResult` / `runImageInference` 中，你可以找到如何消费这些字段的示例。
 
@@ -352,7 +354,7 @@ YOLO-Toys/
 
 2. **检测侧边栏 + 各类别计数**（Step 2）
    - 目标：在前端基于返回 JSON 做数据聚合与结构化展示。
-   - 对应代码：`updateDetectionsSidebar` 与侧边栏 DOM 结构/CSS。
+   - 对应代码：`updateSidebar` 与侧边栏 DOM 结构/CSS。
 
 ### 8.2 推荐的后续扩展 Step
 
@@ -389,6 +391,8 @@ YOLO-Toys/
 ## 9. 如何配合本仓库的工程工具
 
 项目已经内置了一些工程化工具，建议你在改动后经常跑：
+
+在首次运行 `make lint` / `make test` 之前，建议先执行一次 `make dev`（安装 `requirements-dev.txt`，包含 `pytest` / `pre-commit` 等）。
 
 - `make lint`：运行 pre-commit，执行 Black / Ruff / isort 等检查和自动修复；
 - `make test`：执行 `python -m pytest`，验证基础接口仍然正常；

@@ -87,6 +87,11 @@ h1 {
   font-weight: 600;
 }
 
+.version-badge.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
 .quick-model-select {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -164,11 +169,13 @@ canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
   padding: 16px 24px;
   border-radius: var(--radius-lg);
   max-width: 80%;
+  max-height: 40vh;
+  overflow: auto;
   text-align: center;
 }
 
 .caption-label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-.caption-text { font-size: 16px; color: var(--text-main); line-height: 1.5; }
+.caption-text { font-size: 16px; color: #f1f5f9; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
 /* Sidebar */
 .sidebar {
@@ -177,10 +184,16 @@ canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  transition: width 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
 }
 
-.sidebar.collapsed { display: none; }
+.sidebar.collapsed {
+  width: 0;
+  opacity: 0;
+  border-left: none;
+  pointer-events: none;
+}
 
 .sidebar-header {
   padding: 16px;
@@ -392,6 +405,20 @@ select {
 
 input:focus, select:focus { border-color: var(--primary); }
 
+input:focus-visible, select:focus-visible {
+  box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+button:focus-visible,
+.quick-model-select:focus-visible,
+.icon-btn:focus-visible,
+.tab-btn:focus-visible,
+.model-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
 input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 .checkbox-label {
@@ -513,6 +540,14 @@ input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader { animation: none; }
+  .toast { animation: none; }
+  .sidebar,
+  .settings-overlay,
+  .settings-panel { transition: none; }
 }
 
 /* Responsive */

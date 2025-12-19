@@ -55,6 +55,7 @@ const openSettingsBtn = document.getElementById('openSettings');
 const closeSettingsBtn = document.getElementById('closeSettings');
 const toggleSidebarBtn = document.getElementById('toggleSidebar');
 const themeToggleBtn = document.getElementById('themeToggle');
+const versionBadge = document.querySelector('.version-badge');
 
 let running = false, busy = false, detections = [], sendInterval = 200;
 let baseUrl = window.location.origin, sendWidth = 640;
@@ -62,6 +63,7 @@ let lastInferSize = { width: 1, height: 1 }, lastTask = 'detect';
 let ws = null, wsReady = false, currentModel = 'yolov8s.pt', currentCategory = 'yolo_detect';
 let modelCategories = {};
 let modelIdToCategory = {};
+let lastInferErrorToastAt = 0;
 
 const toastContainer = document.getElementById('toastContainer');
 
@@ -95,11 +97,46 @@ themeToggleBtn?.addEventListener('click', () => setTheme(document.documentElemen
 openSettingsBtn?.addEventListener('click', () => settingsOverlay?.classList.add('open'));
 closeSettingsBtn?.addEventListener('click', () => settingsOverlay?.classList.remove('open'));
 settingsOverlay?.addEventListener('click', e => e.target === settingsOverlay && settingsOverlay.classList.remove('open'));
-toggleSidebarBtn?.addEventListener('click', () => detectionsSidebar?.classList.toggle(innerWidth <= 768 ? 'open' : 'collapsed'));
+toggleSidebarBtn?.addEventListener('click', () => {
+  if (!detectionsSidebar) return;
+  if (innerWidth <= 768) {
+    detectionsSidebar.classList.remove('collapsed');
+    detectionsSidebar.classList.toggle('open');
+  } else {
+    detectionsSidebar.classList.remove('open');
+    detectionsSidebar.classList.toggle('collapsed');
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (!detectionsSidebar) return;
+  if (innerWidth <= 768) detectionsSidebar.classList.remove('collapsed');
+  else detectionsSidebar.classList.remove('open');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && settingsOverlay?.classList.contains('open')) settingsOverlay.classList.remove('open');
+});
 
 // Settings
 function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; } }
 function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+async function refreshHealth(base) {
+  if (!versionBadge) return;
+  try {
+    const res = await fetch(`${base}/health`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    versionBadge.textContent = `v${data.version || '-'}`;
+    versionBadge.classList.remove('offline');
+    versionBadge.title = `device=${data.device || '-'} | default=${data.default_model || '-'}`;
+  } catch {
+    versionBadge.textContent = 'offline';
+    versionBadge.classList.add('offline');
+    versionBadge.title = '后端不可达';
+  }
+}
 
 function applySettings() {
   const s = loadSettings();
@@ -122,6 +159,7 @@ function applySettings() {
   if (s.showOverlay !== undefined && showOverlayCb) showOverlayCb.checked = s.showOverlay;
   if (s.maskAlpha) maskAlphaInput.value = s.maskAlpha;
   if (s.model) currentModel = s.model;
+  if (s.customModel !== undefined && customModelInput) customModelInput.value = s.customModel;
   if (s.textQueries !== undefined && textQueriesInput) textQueriesInput.value = s.textQueries;
   if (s.vqaQuestion !== undefined && vqaQuestionInput) vqaQuestionInput.value = s.vqaQuestion;
   updateVars();
@@ -138,7 +176,7 @@ function updateVars() {
     showBoxes: showBoxesCb?.checked, showLabels: showLabelsCb?.checked, showMasks: showMasksCb?.checked,
     showKeypoints: showKeypointsCb?.checked, showSkeleton: showSkeletonCb?.checked,
     showOverlay: showOverlayCb?.checked, maskAlpha: maskAlphaInput?.value, model: currentModel,
-    textQueries: textQueriesInput?.value, vqaQuestion: vqaQuestionInput?.value
+    customModel: customModelInput?.value, textQueries: textQueriesInput?.value, vqaQuestion: vqaQuestionInput?.value
   });
 
   // WebSocket 运行中动态更新配置（后端支持文本消息 config）
@@ -161,13 +199,50 @@ function updateVars() {
       ws.send(JSON.stringify(payload));
     } catch {}
   }
+  updateTaskControls();
 }
 
-[fpsSelect, sendSizeSelect, serverInput, confInput, iouInput, maxDetInput, deviceSelect, qualitySelect,
+[fpsSelect, sendSizeSelect, serverInput, customModelInput, confInput, iouInput, maxDetInput, deviceSelect, qualitySelect,
  imgszInput, halfCb, showBoxesCb, showLabelsCb, showMasksCb, showKeypointsCb, showSkeletonCb, showOverlayCb,
  maskAlphaInput, useWsCb, textQueriesInput, vqaQuestionInput].forEach(el => el?.addEventListener('change', updateVars));
 
+customModelInput?.addEventListener('input', () => {
+  syncCategoryFromModel();
+  renderModels();
+  updateTaskControls();
+});
+
+serverInput?.addEventListener('change', async () => {
+  if (running) {
+    showToast('服务地址已变更（运行中需停止后重新启动生效）', 'info');
+    return;
+  }
+  await loadModels();
+});
+
 // Models
+function getEffectiveModelId() {
+  return customModelInput?.value?.trim() || currentModel;
+}
+
+function inferBackendCategory(modelId) {
+  if (!modelId) return '';
+  if (modelIdToCategory[modelId]) return modelIdToCategory[modelId];
+
+  const id = String(modelId).toLowerCase();
+  if (id.endsWith('.pt')) {
+    if (id.includes('seg')) return 'yolo_segment';
+    if (id.includes('pose')) return 'yolo_pose';
+    return 'yolo_detect';
+  }
+  if (id.includes('owlvit')) return 'hf_owlvit';
+  if (id.includes('grounding') || id.includes('dino')) return 'hf_grounding_dino';
+  if (id.includes('detr')) return 'hf_detr';
+  if (id.includes('blip') && id.includes('vqa')) return 'multimodal_vqa';
+  if (id.includes('blip') && (id.includes('caption') || id.includes('captioning'))) return 'multimodal_caption';
+  return '';
+}
+
 function rebuildModelIndex() {
   modelIdToCategory = {};
   Object.entries(modelCategories || {}).forEach(([cat, data]) => {
@@ -180,20 +255,19 @@ function setActiveTab(cat) {
 }
 
 function syncCategoryFromModel() {
-  const backendCat = modelIdToCategory[currentModel];
+  const backendCat = inferBackendCategory(getEffectiveModelId());
   if (backendCat) currentCategory = backendCat.startsWith('multimodal') ? 'multimodal' : backendCat;
   setActiveTab(currentCategory);
 }
 
 function updateTaskControls() {
-  const backendCat = modelIdToCategory[currentModel] || '';
+  const backendCat = inferBackendCategory(getEffectiveModelId());
   const showTextQueries =
     currentCategory === 'hf_owlvit' ||
     currentCategory === 'hf_grounding_dino' ||
     backendCat === 'hf_owlvit' ||
     backendCat === 'hf_grounding_dino';
-  const showVqaQuestion =
-    (currentCategory === 'multimodal' || backendCat === 'multimodal_vqa') && backendCat !== 'multimodal_caption';
+  const showVqaQuestion = backendCat === 'multimodal_vqa';
 
   const showSection = showTextQueries || showVqaQuestion;
   if (multimodalSection) multimodalSection.style.display = showSection ? '' : 'none';
@@ -203,6 +277,7 @@ function updateTaskControls() {
 
 function setModel(modelId) {
   currentModel = modelId;
+  if (customModelInput) customModelInput.value = '';
   syncCategoryFromModel();
   renderModels();
   updateTaskControls();
@@ -229,6 +304,7 @@ async function loadModels() {
       yolo_pose: { name: '姿态', models: [{ id: 'yolov8s-pose.pt', name: 'YOLOv8 Pose' }] }
     };
   }
+  await refreshHealth(base);
   rebuildModelIndex();
   syncCategoryFromModel();
   renderModels();
@@ -264,8 +340,16 @@ function renderModels() {
         const item = document.createElement('div');
         item.className = `model-item${m.id === currentModel ? ' selected' : ''}`;
         item.dataset.model = m.id;
+        item.setAttribute('role', 'button');
+        item.tabIndex = 0;
         item.innerHTML = `<div class="model-item-name">${m.name}</div><div class="model-item-desc">${m.description || ''}</div>${m.speed ? `<div class="model-item-meta"><span>速度: ${m.speed}</span><span>精度: ${m.accuracy || '-'}</span></div>` : ''}`;
         item.onclick = () => { setModel(m.id); showToast(`已选择 ${m.name}`, 'info'); };
+        item.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            item.click();
+          }
+        };
         modelList.appendChild(item);
       }
     });
@@ -350,7 +434,7 @@ function getParams() {
   const base = (serverInput?.value?.trim() || baseUrl).replace(/\/$/, '');
   return { base, conf: parseFloat(confInput?.value || '0.25'), iou: parseFloat(iouInput?.value || '0.45'),
     maxDet: parseInt(maxDetInput?.value || '300'), device: deviceSelect?.value || 'auto',
-    model: customModelInput?.value?.trim() || currentModel,
+    model: getEffectiveModelId(),
     imgsz: parseInt(imgszInput?.value || '640'),
     half: halfCb?.checked,
     textQueries: textQueriesInput?.value?.trim(),
@@ -381,11 +465,28 @@ async function sendFrame() {
         if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
         if (p.question) u.searchParams.set('question', p.question);
         const res = await fetch(u, { method: 'POST', body: fd });
-        if (res.ok) handleResult(await res.json(), t0, p.device);
+        if (res.ok) {
+          handleResult(await res.json(), t0, p.device);
+        } else {
+          const now = Date.now();
+          if (now - lastInferErrorToastAt > 3000) {
+            let detail = '';
+            try {
+              const err = await res.json();
+              detail = err?.detail ? String(err.detail) : '';
+            } catch {}
+            showToast(`推理失败: HTTP ${res.status}${detail ? ` - ${detail}` : ''}`, 'error');
+            lastInferErrorToastAt = now;
+          }
+        }
       }
     } catch (e) { 
       console.error(e);
-      if (!e.message?.includes('fetch')) showToast('推理请求失败', 'error');
+      const now = Date.now();
+      if (now - lastInferErrorToastAt > 3000) {
+        showToast('推理请求失败', 'error');
+        lastInferErrorToastAt = now;
+      }
     }
     busy = false;
     if (running) setTimeout(sendFrame, sendInterval);
@@ -442,7 +543,13 @@ function initWS() {
     try { 
       const d = JSON.parse(e.data); 
       if (d.type === 'result') handleResult(d.data, performance.now(), p.device);
-      else if (d.type === 'error') showToast(d.detail || '推理错误', 'error');
+      else if (d.type === 'error') {
+        const now = Date.now();
+        if (now - lastInferErrorToastAt > 3000) {
+          showToast(d.detail || '推理错误', 'error');
+          lastInferErrorToastAt = now;
+        }
+      }
     } catch {} 
   };
   ws.onclose = () => { wsReady = false; ws = null; if (running) showToast('WebSocket 连接断开', 'error'); };
@@ -464,7 +571,16 @@ async function runImageInference(file) {
   const t0 = performance.now();
   try {
     const res = await fetch(u, { method: 'POST', body: fd });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      let detail = '';
+      try {
+        const err = await res.json();
+        detail = err?.detail ? String(err.detail) : '';
+      } catch {
+        try { detail = await res.text(); } catch {}
+      }
+      throw new Error(detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`);
+    }
     const data = await res.json();
     handleResult(data, t0, p.device);
     const img = new Image();
@@ -486,7 +602,9 @@ async function runImageInference(file) {
 startBtn?.addEventListener('click', async () => {
   startBtn.disabled = true; startBtn.innerHTML = '<span class="loader"></span> 启动中...';
   try {
-    await loadModels(); applySettings(); await setupCamera();
+    updateVars();
+    await loadModels();
+    await setupCamera();
     closeWS(); initWS(); running = true; stopBtn.disabled = false; emptyState.style.display = 'none';
     draw(); sendFrame();
   } catch (e) { 
