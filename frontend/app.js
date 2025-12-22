@@ -499,6 +499,7 @@ function handleResult(data, t0, device) {
   const rt = performance.now() - t0, bt = data.inference_time;
   const summary = data.caption ? '图像描述' : (data.answer ? '视觉问答' : `${detections.length} 目标`);
   statsEl.textContent = `推理: ${bt?.toFixed(0) || '-'}ms | RTT: ${rt.toFixed(0)}ms | ${summary}`;
+  if (summaryTimingEl) summaryTimingEl.textContent = data.inference_time ? `${data.inference_time.toFixed?.(1)} ms` : '-';
   if (showOverlayCb?.checked && overlayInfo) { overlayInfo.hidden = false; overlayInferTime.textContent = `${bt?.toFixed(0)}ms`; overlayObjects.textContent = detections.length; }
   else if (overlayInfo) overlayInfo.hidden = true;
   if (data.caption) {
@@ -512,21 +513,11 @@ function handleResult(data, t0, device) {
   } else {
     captionResult.hidden = true;
   }
-  updateSidebar(data, device, bt);
-}
-
-function updateSidebar(data, device, bt) {
-  summaryTotalEl.textContent = detections.length;
-  summaryModelEl.textContent = data.model || currentModel;
-  summaryDeviceEl.textContent = device || '-';
-  summaryTimingEl.textContent = `${bt?.toFixed(0) || '-'}ms`;
   const counts = {}; detections.forEach(d => counts[d.label] = (counts[d.label] || 0) + 1);
   classCountsEl.innerHTML = Object.keys(counts).length
     ? Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([c, n]) => `<div class="class-item"><span style="color:${getColor(c)}">${c}</span><span class="count">${n}</span></div>`).join('')
     : '<div class="empty-hint">暂无检测</div>';
 }
-
-// WebSocket
 function initWS() {
   if (!useWsCb?.checked) return;
   const p = getParams(), proto = p.base.startsWith('https') ? 'wss' : 'ws';

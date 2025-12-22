@@ -13,5 +13,6 @@
   - 更新 `frontend/app.js`：启动/切换服务地址时自动请求 `/health`，将 header 版本徽标更新为真实后端版本；后端不可达时展示 `offline` 状态。
   - 更新 `frontend/app.js`：修复启动流程中 `applySettings()` 覆盖当前输入导致的服务地址/模型不一致问题（启动前先保存当前输入并加载模型/健康状态）。
   - 更新 `frontend/app.js`：侧边栏切换逻辑在桌面/移动端互斥处理（`open`/`collapsed`），并在窗口 resize 时自动清理不适用状态，避免显示异常。
+  - 更新 `frontend/index.html`：为核心交互按钮与模型选择控件补充 ARIA label，改善可访问性。
   - 更新 `frontend/style.css`：补充 `:focus-visible` 样式提升键盘可访问性；Caption/VQA 面板支持滚动与自动换行；支持 `prefers-reduced-motion` 减少动画。
   - 更新 `frontend/style.css`：侧边栏在桌面端折叠时改为 `width: 0` 平滑收起并释放画布空间；为 `.version-badge` 增加 `offline` 状态样式。
