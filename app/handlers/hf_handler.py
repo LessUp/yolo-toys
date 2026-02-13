@@ -1,0 +1,275 @@
+"""
+HuggingFace Transformers 模型处理器 - DETR / OWL-ViT / Grounding DINO
+"""
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from app.handlers.base import BaseHandler
+
+try:
+    import torch
+except ImportError:
+    torch = None
+
+_HF_AVAILABLE = False
+try:
+    from transformers import (
+        AutoModelForZeroShotObjectDetection,
+        AutoProcessor,
+        DetrForObjectDetection,
+        DetrImageProcessor,
+    )
+
+    _HF_AVAILABLE = True
+except ImportError:
+    pass
+
+
+def _require_hf():
+    if not _HF_AVAILABLE:
+        raise RuntimeError("transformers not installed")
+
+
+# ======================================================================
+# DETR
+# ======================================================================
+
+
+class DETRHandler(BaseHandler):
+    """Facebook DETR 目标检测"""
+
+    def load(self, model_id: str) -> Tuple[Any, Any]:
+        _require_hf()
+        processor = DetrImageProcessor.from_pretrained(model_id)
+        model = DetrForObjectDetection.from_pretrained(model_id)
+        if self._device.startswith("cuda") and torch is not None:
+            model = model.to("cuda")
+        return model, processor
+
+    def infer(
+        self,
+        model: Any,
+        processor: Any,
+        image: np.ndarray,
+        *,
+        conf: float = 0.5,
+        iou: float = 0.45,
+        max_det: int = 300,
+        device: Optional[str] = None,
+        imgsz: Optional[int] = None,
+        half: bool = False,
+        text_queries: Optional[List[str]] = None,
+        question: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        t0 = time.time()
+        pil_image = self.bgr_to_pil(image)
+
+        inputs = processor(images=pil_image, return_tensors="pt")
+        inputs = self._to_device(inputs)
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        target_sizes = torch.tensor([pil_image.size[::-1]])
+        if self._device.startswith("cuda"):
+            target_sizes = target_sizes.to("cuda")
+
+        results = processor.post_process_object_detection(
+            outputs, target_sizes=target_sizes, threshold=conf
+        )[0]
+
+        elapsed = (time.time() - t0) * 1000.0
+
+        dets = []
+        for score, label, box in zip(
+            results["scores"].cpu().numpy(),
+            results["labels"].cpu().numpy(),
+            results["boxes"].cpu().numpy(),
+        ):
+            dets.append(
+                {
+                    "bbox": [float(v) for v in box],
+                    "score": float(score),
+                    "label": model.config.id2label.get(int(label), str(label)),
+                }
+            )
+
+        return self.make_result(image, detections=dets, inference_time=elapsed, task="detect")
+
+
+# ======================================================================
+# OWL-ViT
+# ======================================================================
+
+
+class OWLViTHandler(BaseHandler):
+    """Google OWL-ViT 开放词汇检测"""
+
+    def load(self, model_id: str) -> Tuple[Any, Any]:
+        _require_hf()
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
+        if self._device.startswith("cuda") and torch is not None:
+            model = model.to("cuda")
+        return model, processor
+
+    def infer(
+        self,
+        model: Any,
+        processor: Any,
+        image: np.ndarray,
+        *,
+        conf: float = 0.1,
+        iou: float = 0.45,
+        max_det: int = 300,
+        device: Optional[str] = None,
+        imgsz: Optional[int] = None,
+        half: bool = False,
+        text_queries: Optional[List[str]] = None,
+        question: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        t0 = time.time()
+        queries = text_queries or ["object"]
+        pil_image = self.bgr_to_pil(image)
+
+        inputs = processor(text=queries, images=pil_image, return_tensors="pt")
+        inputs = self._to_device(inputs)
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        target_sizes = torch.tensor([pil_image.size[::-1]])
+        results = processor.post_process_object_detection(
+            outputs, target_sizes=target_sizes, threshold=conf
+        )[0]
+
+        elapsed = (time.time() - t0) * 1000.0
+
+        dets = []
+        for score, label, box in zip(
+            results["scores"].cpu().numpy(),
+            results["labels"].cpu().numpy(),
+            results["boxes"].cpu().numpy(),
+        ):
+            dets.append(
+                {
+                    "bbox": [float(v) for v in box],
+                    "score": float(score),
+                    "label": queries[int(label)] if int(label) < len(queries) else str(label),
+                }
+            )
+
+        return self.make_result(
+            image, detections=dets, inference_time=elapsed, task="detect", text_queries=queries
+        )
+
+
+# ======================================================================
+# Grounding DINO
+# ======================================================================
+
+
+class GroundingDINOHandler(BaseHandler):
+    """IDEA-Research Grounding DINO 开放集检测"""
+
+    def load(self, model_id: str) -> Tuple[Any, Any]:
+        _require_hf()
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
+        if self._device.startswith("cuda") and torch is not None:
+            model = model.to("cuda")
+        return model, processor
+
+    def infer(
+        self,
+        model: Any,
+        processor: Any,
+        image: np.ndarray,
+        *,
+        conf: float = 0.25,
+        iou: float = 0.45,
+        max_det: int = 300,
+        device: Optional[str] = None,
+        imgsz: Optional[int] = None,
+        half: bool = False,
+        text_queries: Optional[List[str]] = None,
+        question: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if torch is None:
+            raise RuntimeError("torch not installed")
+
+        t0 = time.time()
+        queries = text_queries or ["object"]
+        pil_image = self.bgr_to_pil(image)
+
+        labels = self._prepare_labels(queries)
+
+        # 优先使用 list[list[str]] 的新格式；若不兼容则回退到句号分隔字符串
+        try:
+            inputs = processor(images=pil_image, text=[labels], return_tensors="pt")
+        except Exception:
+            text_str = ". ".join(labels)
+            if not text_str.endswith("."):
+                text_str += "."
+            inputs = processor(images=pil_image, text=text_str, return_tensors="pt")
+
+        inputs = self._to_device(inputs)
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        if not hasattr(processor, "post_process_grounded_object_detection"):
+            raise RuntimeError("transformers 版本过低，缺少 GroundingDINO 后处理方法")
+
+        results = processor.post_process_grounded_object_detection(
+            outputs=outputs,
+            input_ids=inputs.get("input_ids"),
+            threshold=float(conf),
+            text_threshold=0.25,
+            target_sizes=[pil_image.size[::-1]],
+            text_labels=[labels],
+        )
+        result = results[0] if results else {}
+
+        boxes = result.get("boxes")
+        scores = result.get("scores")
+        det_labels = result.get("labels") or result.get("text_labels") or []
+
+        boxes_np = (
+            boxes.detach().cpu().numpy() if hasattr(boxes, "detach") else np.zeros((0, 4))
+        )
+        scores_np = (
+            scores.detach().cpu().numpy() if hasattr(scores, "detach") else np.zeros((0,))
+        )
+
+        dets: List[Dict[str, Any]] = []
+        for i in range(int(scores_np.shape[0])):
+            raw_label = det_labels[i] if i < len(det_labels) else ""
+            label = ", ".join(str(x) for x in raw_label) if isinstance(raw_label, (list, tuple)) else str(raw_label)
+            dets.append(
+                {
+                    "bbox": [float(v) for v in boxes_np[i].tolist()],
+                    "score": float(scores_np[i]),
+                    "label": label,
+                }
+            )
+
+        elapsed = (time.time() - t0) * 1000.0
+        return self.make_result(
+            image, detections=dets, inference_time=elapsed, task="detect", text_queries=queries
+        )
+
+    @staticmethod
+    def _prepare_labels(queries: List[str]) -> List[str]:
+        labels: List[str] = []
+        for q in queries:
+            q = str(q).strip()
+            if not q:
+                continue
+            if q.lower().startswith(("a ", "an ", "the ")):
+                labels.append(q)
+            else:
+                labels.append(f"a {q}")
+        return labels or ["a object"]

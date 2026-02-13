@@ -2,7 +2,16 @@
 
 > 支持 YOLO、HuggingFace Transformers、多模态模型的实时视频物体识别平台
 
-## ✨ 新功能 (v2.0)
+## ✨ v3.0 - 架构重构
+- 🏗️ **策略模式** - 模型处理器拆分为独立 Handler（YOLO / DETR / OWL-ViT / BLIP）
+- ⚙️ **Pydantic Settings** - 统一配置管理，替代散乱的 `os.getenv`
+- 🔄 **Lifespan** - 使用现代 FastAPI lifespan 替代已弃用的 `on_event`
+- 📦 **路由提取** - `main.py` 拆分为 `routes.py`，职责更清晰
+- 📝 **结构化日志** - `logging` 替代 `print`
+- 🧪 **测试增强** - WebSocket、边界输入、注册表单元测试全覆盖
+- 🎯 **前端优化** - 提取 `buildInferUrl` 消除 URL 构建重复代码
+
+## ✨ v2.0 特性
 - 🔄 **多模型动态切换** - YOLO 检测/分割/姿态、DETR、OWL-ViT、BLIP
 - 🤖 **HuggingFace 集成** - 支持开放词汇检测和多模态模型
 - 💬 **多模态功能** - 图像描述生成、视觉问答 (VQA)
@@ -82,16 +91,28 @@ make compose-down  # docker compose down
 ```
 YOLO-Toys/
 ├─ app/
-│  ├─ main.py           # FastAPI 入口，统一推理接口
-│  ├─ model_manager.py  # 多模型管理器（YOLO/HF/多模态）
-│  └─ schemas.py        # Pydantic 返回结构
+│  ├─ __init__.py         # 版本号
+│  ├─ main.py             # FastAPI 入口 + lifespan 生命周期
+│  ├─ config.py           # Pydantic Settings 统一配置
+│  ├─ routes.py           # API 路由（REST + WebSocket）
+│  ├─ model_manager.py    # 模型管理器（委托 handlers）
+│  ├─ schemas.py          # Pydantic 响应模型
+│  └─ handlers/           # 策略模式处理器
+│     ├─ base.py          # 处理器基类
+│     ├─ registry.py      # 模型注册表 + 处理器工厂
+│     ├─ yolo_handler.py  # YOLO 检测/分割/姿态
+│     ├─ hf_handler.py    # DETR / OWL-ViT / Grounding DINO
+│     └─ blip_handler.py  # BLIP Caption / VQA
 ├─ frontend/
-│  ├─ index.html        # 全新 UI 设计
-│  ├─ style.css         # 现代化样式
-│  └─ app.js            # 增强交互逻辑
-├─ changelog/           # 更新日志
-├─ requirements.txt     # 包含 transformers
-└─ README.md
+│  ├─ index.html          # UI 界面
+│  ├─ style.css           # 样式（深色/浅色主题）
+│  └─ app.js              # 前端交互逻辑
+├─ tests/
+│  └─ test_api.py         # API + WebSocket + 单元测试
+├─ changelog/             # 更新日志
+├─ docs/                  # 详细教学文档
+├─ requirements.txt       # 运行依赖
+└─ requirements-dev.txt   # 开发依赖
 ```
 
 ## 本地运行

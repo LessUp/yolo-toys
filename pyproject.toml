@@ -1,3 +1,11 @@
+[project]
+name = "yolo-toys"
+version = "3.0.0"
+description = "多模型实时视觉识别系统 - 支持 YOLO、HuggingFace Transformers、多模态模型"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
@@ -9,8 +17,11 @@ force_single_line = false
 
 [tool.ruff]
 line-length = 100
-select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E203", "E266", "E501"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+testpaths = ["tests"]

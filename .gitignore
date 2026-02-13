@@ -1,5 +1,30 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ultralytics
 runs/
+
+# Model weights (大文件不入库，按需下载)
+*.pt
+*.onnx
+*.engine

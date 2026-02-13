@@ -67,7 +67,7 @@ let lastInferErrorToastAt = 0;
 
 const toastContainer = document.getElementById('toastContainer');
 
-const SETTINGS_KEY = 'yolo_toys_v3';
+const SETTINGS_KEY = 'yolo_toys_v4';
 const SKELETON = [[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 const COLORS = ['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e','#06b6d4','#3b82f6','#6366f1','#a855f7','#ec4899'];
 
@@ -442,6 +442,25 @@ function getParams() {
   };
 }
 
+function buildInferUrl(p, endpoint = '/infer') {
+  const u = new URL(`${p.base}${endpoint}`);
+  u.searchParams.set('conf', p.conf);
+  u.searchParams.set('iou', p.iou);
+  u.searchParams.set('max_det', p.maxDet);
+  if (p.device !== 'auto') u.searchParams.set('device', p.device);
+  u.searchParams.set('model', p.model);
+  u.searchParams.set('imgsz', p.imgsz);
+  if (p.half) u.searchParams.set('half', '1');
+  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
+  if (p.question) u.searchParams.set('question', p.question);
+  return u;
+}
+
+function buildWsUrl(p) {
+  const proto = p.base.startsWith('https') ? 'wss' : 'ws';
+  return buildInferUrl({ ...p, base: p.base.replace(/^http(s)?/, proto) }, '/ws');
+}
+
 async function sendFrame() {
   if (!running || busy) return;
   busy = true;
@@ -457,13 +476,7 @@ async function sendFrame() {
       if (useWsCb?.checked && ws && wsReady) { ws.send(blob); }
       else {
         const fd = new FormData(); fd.append('file', blob, 'f.jpg');
-        const u = new URL(`${p.base}/infer`);
-        u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('max_det', p.maxDet);
-        if (p.device !== 'auto') u.searchParams.set('device', p.device);
-        u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
-        if (p.half) u.searchParams.set('half', '1');
-        if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
-        if (p.question) u.searchParams.set('question', p.question);
+        const u = buildInferUrl(p);
         const res = await fetch(u, { method: 'POST', body: fd });
         if (res.ok) {
           handleResult(await res.json(), t0, p.device);
@@ -520,14 +533,8 @@ function handleResult(data, t0, device) {
 }
 function initWS() {
   if (!useWsCb?.checked) return;
-  const p = getParams(), proto = p.base.startsWith('https') ? 'wss' : 'ws';
-  const u = new URL(`${p.base.replace(/^http(s)?/, proto)}/ws`);
-  u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('max_det', p.maxDet);
-  if (p.device !== 'auto') u.searchParams.set('device', p.device);
-  u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
-  if (p.half) u.searchParams.set('half', '1');
-  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
-  if (p.question) u.searchParams.set('question', p.question);
+  const p = getParams();
+  const u = buildWsUrl(p);
   ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
   ws.onopen = () => { wsReady = true; showToast('WebSocket 已连接', 'success'); };
   ws.onmessage = e => { 
@@ -551,13 +558,7 @@ function closeWS() { try { ws?.close(); } catch {} ws = null; wsReady = false; }
 // Image Inference
 async function runImageInference(file) {
   const p = getParams(), fd = new FormData(); fd.append('file', file);
-  const u = new URL(`${p.base}/infer`);
-  u.searchParams.set('conf', p.conf); u.searchParams.set('iou', p.iou); u.searchParams.set('max_det', p.maxDet);
-  if (p.device !== 'auto') u.searchParams.set('device', p.device);
-  u.searchParams.set('model', p.model); u.searchParams.set('imgsz', p.imgsz);
-  if (p.half) u.searchParams.set('half', '1');
-  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
-  if (p.question) u.searchParams.set('question', p.question);
+  const u = buildInferUrl(p);
   statsEl.textContent = '推理中...';
   const t0 = performance.now();
   try {
