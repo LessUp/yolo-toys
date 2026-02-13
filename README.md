@@ -1,5 +1,11 @@
 # 🎯 YOLO-Toys - 多模型实时视觉识别系统
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-5E60CE)
+
 > 支持 YOLO、HuggingFace Transformers、多模态模型的实时视频物体识别平台
 
 ## ✨ v3.0 - 架构重构
