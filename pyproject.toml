@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "yolo-toys"
 version = "3.0.0"
@@ -5,22 +9,25 @@ description = "多模型实时视觉识别系统 - 支持 YOLO、HuggingFace Tra
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
-
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-
-[tool.isort]
-profile = "black"
-line_length = 100
-force_single_line = false
+authors = [
+    {name = "LessUp", email = "lessup@users.noreply.github.com"}
+]
 
 [tool.ruff]
 line-length = 100
+target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E203", "E266", "E501"]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4"]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 addopts = "-q"
