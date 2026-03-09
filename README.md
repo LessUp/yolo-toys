@@ -1,4 +1,6 @@
-# 🎯 YOLO-Toys - 多模型实时视觉识别系统
+# YOLO-Toys - 多模型实时视觉识别系统
+
+简体中文 | [English](README.en.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
