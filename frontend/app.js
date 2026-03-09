@@ -1,6 +1,10 @@
 /**
  * YOLO-Toys 增强版前端 - 多模型实时视觉识别
  */
+import { buildInferUrl, buildWsUrl } from './js/api.js';
+import { setupCamera as initCamera, captureFrame } from './js/camera.js';
+import { getColor, drawDetections as drawDetectionsOnCanvas } from './js/draw.js';
+
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -68,8 +72,6 @@ let lastInferErrorToastAt = 0;
 const toastContainer = document.getElementById('toastContainer');
 
 const SETTINGS_KEY = 'yolo_toys_v4';
-const SKELETON = [[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
-const COLORS = ['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e','#06b6d4','#3b82f6','#6366f1','#a855f7','#ec4899'];
 
 // Toast 通知系统
 function showToast(message, type = 'info', duration = 3000) {
@@ -368,12 +370,7 @@ quickModelSelect?.addEventListener('change', () => setModel(quickModelSelect.val
 // Camera
 async function setupCamera() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' } });
-    video.srcObject = stream;
-    await new Promise(r => video.onloadedmetadata = r);
-    video.play();
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    await initCamera(video, canvas);
     showToast('摄像头启动成功', 'success');
   } catch (e) {
     if (e.name === 'NotAllowedError') {
@@ -389,9 +386,6 @@ async function setupCamera() {
 }
 
 // Drawing
-function getColor(label) { let h = 0; for (let i = 0; i < label.length; i++) h = label.charCodeAt(i) + ((h << 5) - h); return COLORS[Math.abs(h) % COLORS.length]; }
-function hexToRgb(hex) { const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : { r: 255, g: 0, b: 0 }; }
-
 function draw() {
   if (!running) return;
   requestAnimationFrame(draw);
@@ -405,27 +399,13 @@ function draw() {
 
 function drawDetections() {
   if (!detections?.length) return;
-  const sx = canvas.width / lastInferSize.width, sy = canvas.height / lastInferSize.height;
-  const alpha = parseFloat(maskAlphaInput?.value || '0.3');
-
-  if (showMasksCb?.checked) detections.forEach(d => {
-    if (!d.polygons?.length) return;
-    const rgb = hexToRgb(getColor(d.label));
-    ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
-    d.polygons.forEach(p => { if (!p?.length) return; ctx.beginPath(); for (let i = 0; i < p.length; i += 2) i === 0 ? ctx.moveTo(p[i] * sx, p[i+1] * sy) : ctx.lineTo(p[i] * sx, p[i+1] * sy); ctx.closePath(); ctx.fill(); });
-  });
-
-  ctx.lineWidth = 2; ctx.font = 'bold 12px sans-serif';
-  detections.forEach(d => {
-    const [x1, y1, x2, y2] = d.bbox.map((v, i) => v * (i % 2 ? sy : sx));
-    const c = getColor(d.label);
-    if (showBoxesCb?.checked) { ctx.strokeStyle = c; ctx.strokeRect(x1, y1, x2 - x1, y2 - y1); }
-    if (showLabelsCb?.checked) { const l = `${d.label} ${(d.score * 100).toFixed(0)}%`; ctx.fillStyle = c; ctx.fillRect(x1, y1 - 16, ctx.measureText(l).width + 6, 16); ctx.fillStyle = '#000'; ctx.fillText(l, x1 + 3, y1 - 4); }
-    if (d.keypoints?.length && (showKeypointsCb?.checked || showSkeletonCb?.checked)) {
-      const kps = d.keypoints.map(k => [k[0] * sx, k[1] * sy]);
-      if (showSkeletonCb?.checked) { ctx.strokeStyle = c; SKELETON.forEach(([i, j]) => { if (kps[i] && kps[j] && kps[i][0] > 0 && kps[j][0] > 0) { ctx.beginPath(); ctx.moveTo(...kps[i]); ctx.lineTo(...kps[j]); ctx.stroke(); } }); }
-      if (showKeypointsCb?.checked) kps.forEach(([x, y]) => { if (x > 0 && y > 0) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); } });
-    }
+  drawDetectionsOnCanvas(ctx, detections, lastInferSize, {
+    showBoxes: showBoxesCb?.checked,
+    showLabels: showLabelsCb?.checked,
+    showMasks: showMasksCb?.checked,
+    showKeypoints: showKeypointsCb?.checked,
+    showSkeleton: showSkeletonCb?.checked,
+    maskAlpha: parseFloat(maskAlphaInput?.value || '0.3'),
   });
 }
 
@@ -442,68 +422,44 @@ function getParams() {
   };
 }
 
-function buildInferUrl(p, endpoint = '/infer') {
-  const u = new URL(`${p.base}${endpoint}`);
-  u.searchParams.set('conf', p.conf);
-  u.searchParams.set('iou', p.iou);
-  u.searchParams.set('max_det', p.maxDet);
-  if (p.device !== 'auto') u.searchParams.set('device', p.device);
-  u.searchParams.set('model', p.model);
-  u.searchParams.set('imgsz', p.imgsz);
-  if (p.half) u.searchParams.set('half', '1');
-  if (p.textQueries) u.searchParams.set('text_queries', p.textQueries);
-  if (p.question) u.searchParams.set('question', p.question);
-  return u;
-}
-
-function buildWsUrl(p) {
-  const proto = p.base.startsWith('https') ? 'wss' : 'ws';
-  return buildInferUrl({ ...p, base: p.base.replace(/^http(s)?/, proto) }, '/ws');
-}
-
 async function sendFrame() {
   if (!running || busy) return;
   busy = true;
   const t0 = performance.now();
-  const scale = sendWidth / video.videoWidth;
-  const sw = Math.round(video.videoWidth * scale), sh = Math.round(video.videoHeight * scale);
-  const sc = document.createElement('canvas'); sc.width = sw; sc.height = sh;
-  sc.getContext('2d').drawImage(video, 0, 0, sw, sh);
-
-  sc.toBlob(async blob => {
-    const p = getParams();
-    try {
-      if (useWsCb?.checked && ws && wsReady) { ws.send(blob); }
-      else {
-        const fd = new FormData(); fd.append('file', blob, 'f.jpg');
-        const u = buildInferUrl(p);
-        const res = await fetch(u, { method: 'POST', body: fd });
-        if (res.ok) {
-          handleResult(await res.json(), t0, p.device);
-        } else {
-          const now = Date.now();
-          if (now - lastInferErrorToastAt > 3000) {
-            let detail = '';
-            try {
-              const err = await res.json();
-              detail = err?.detail ? String(err.detail) : '';
-            } catch {}
-            showToast(`推理失败: HTTP ${res.status}${detail ? ` - ${detail}` : ''}`, 'error');
-            lastInferErrorToastAt = now;
-          }
+  const quality = parseFloat(qualitySelect?.value || '0.8');
+  const blob = await captureFrame(video, sendWidth, quality);
+  const p = getParams();
+  try {
+    if (useWsCb?.checked && ws && wsReady) { ws.send(blob); }
+    else {
+      const fd = new FormData(); fd.append('file', blob, 'f.jpg');
+      const u = buildInferUrl(p);
+      const res = await fetch(u, { method: 'POST', body: fd });
+      if (res.ok) {
+        handleResult(await res.json(), t0, p.device);
+      } else {
+        const now = Date.now();
+        if (now - lastInferErrorToastAt > 3000) {
+          let detail = '';
+          try {
+            const err = await res.json();
+            detail = err?.detail ? String(err.detail) : '';
+          } catch {}
+          showToast(`推理失败: HTTP ${res.status}${detail ? ` - ${detail}` : ''}`, 'error');
+          lastInferErrorToastAt = now;
         }
       }
-    } catch (e) { 
-      console.error(e);
-      const now = Date.now();
-      if (now - lastInferErrorToastAt > 3000) {
-        showToast('推理请求失败', 'error');
-        lastInferErrorToastAt = now;
-      }
     }
-    busy = false;
-    if (running) setTimeout(sendFrame, sendInterval);
-  }, 'image/jpeg', parseFloat(qualitySelect?.value || '0.8'));
+  } catch (e) {
+    console.error(e);
+    const now = Date.now();
+    if (now - lastInferErrorToastAt > 3000) {
+      showToast('推理请求失败', 'error');
+      lastInferErrorToastAt = now;
+    }
+  }
+  busy = false;
+  if (running) setTimeout(sendFrame, sendInterval);
 }
 
 function handleResult(data, t0, device) {

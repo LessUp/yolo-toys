@@ -1,9 +1,9 @@
 """
 模型处理器基类 - 定义统一接口
 """
-import time
+
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -24,7 +24,7 @@ class BaseHandler(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    def load(self, model_id: str) -> Tuple[Any, Optional[Any]]:
+    def load(self, model_id: str) -> tuple[Any, Any | None]:
         """
         加载模型，返回 (model, processor)。
         processor 可为 None（如 YOLO 不需要独立 processor）。
@@ -34,18 +34,18 @@ class BaseHandler(ABC):
     def infer(
         self,
         model: Any,
-        processor: Optional[Any],
+        processor: Any | None,
         image: np.ndarray,
         *,
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         """执行推理，返回标准结果字典"""
 
     # ------------------------------------------------------------------
@@ -58,7 +58,7 @@ class BaseHandler(ABC):
         return Image.fromarray(image[:, :, ::-1])
 
     @staticmethod
-    def image_hw(image: np.ndarray) -> Tuple[int, int]:
+    def image_hw(image: np.ndarray) -> tuple[int, int]:
         """返回 (height, width)"""
         return image.shape[:2]
 
@@ -66,14 +66,14 @@ class BaseHandler(ABC):
     def make_result(
         image: np.ndarray,
         *,
-        detections: Optional[List[Dict[str, Any]]] = None,
+        detections: list[dict[str, Any]] | None = None,
         inference_time: float,
         task: str = "detect",
         **extra,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """构造标准返回字典"""
         h, w = image.shape[:2]
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "width": w,
             "height": h,
             "inference_time": inference_time,
@@ -84,13 +84,13 @@ class BaseHandler(ABC):
         result.update(extra)
         return result
 
-    def _model_to_device(self, model: Any) -> Any:
+    def _model_to_device(self, model: Any) -> Any:  # noqa: ANN401
         """将模型移动到当前设备（GPU 场景）"""
         if self._device != "cpu" and hasattr(model, "to"):
             model = model.to(self._device)
         return model
 
-    def _to_device(self, inputs: Dict[str, Any], device: Optional[str] = None) -> Dict[str, Any]:
+    def _to_device(self, inputs: dict[str, Any], device: str | None = None) -> dict[str, Any]:
         """将 tensor dict 移动到指定设备"""
         target = device or self._device
         if target == "cpu":

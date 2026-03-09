@@ -1,7 +1,7 @@
 # 🎯 YOLO-Toys - 多模型实时视觉识别系统
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-5E60CE)
@@ -112,8 +112,13 @@ YOLO-Toys/
 ├─ frontend/
 │  ├─ index.html          # UI 界面
 │  ├─ style.css           # 样式（深色/浅色主题）
-│  └─ app.js              # 前端交互逻辑
+│  ├─ app.js              # 前端入口（ES Module）
+│  └─ js/                 # 前端模块
+│     ├─ api.js           # API / WebSocket 通信
+│     ├─ camera.js        # 摄像头管理
+│     └─ draw.js          # Canvas 绘制（检测框/掩膜/骨架）
 ├─ tests/
+│  ├─ __init__.py
 │  └─ test_api.py         # API + WebSocket + 单元测试
 ├─ changelog/             # 更新日志
 ├─ docs/                  # 详细教学文档
@@ -258,10 +263,11 @@ pre-commit install
 ```
 - 代码检查与测试：
 ```
-pre-commit run --all-files
+ruff check .
+ruff format --check .
 python -m pytest
 ```
-- 代码风格：Black + Ruff + isort（见 `pyproject.toml`）
+- 代码风格：Ruff（lint + format，见 `pyproject.toml`）
 - 贡献指南：见 `CONTRIBUTING.md`，行为准则见 `CODE_OF_CONDUCT.md`，安全披露见 `SECURITY.md`
  - PR 模板：`.github/PULL_REQUEST_TEMPLATE.md`
  - Issue 模板：`.github/ISSUE_TEMPLATE/bug_report.md`、`.github/ISSUE_TEMPLATE/feature_request.md`

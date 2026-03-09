@@ -1,8 +1,9 @@
 """
 HuggingFace Transformers 模型处理器 - DETR / OWL-ViT / Grounding DINO
 """
+
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -40,12 +41,11 @@ def _require_hf():
 class DETRHandler(BaseHandler):
     """Facebook DETR 目标检测"""
 
-    def load(self, model_id: str) -> Tuple[Any, Any]:
+    def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
         processor = DetrImageProcessor.from_pretrained(model_id)
         model = DetrForObjectDetection.from_pretrained(model_id)
-        if self._device.startswith("cuda") and torch is not None:
-            model = model.to("cuda")
+        model = self._model_to_device(model)
         return model, processor
 
     def infer(
@@ -57,12 +57,12 @@ class DETRHandler(BaseHandler):
         conf: float = 0.5,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         t0 = time.time()
         pil_image = self.bgr_to_pil(image)
 
@@ -73,8 +73,8 @@ class DETRHandler(BaseHandler):
             outputs = model(**inputs)
 
         target_sizes = torch.tensor([pil_image.size[::-1]])
-        if self._device.startswith("cuda"):
-            target_sizes = target_sizes.to("cuda")
+        if self._device != "cpu":
+            target_sizes = target_sizes.to(self._device)
 
         results = processor.post_process_object_detection(
             outputs, target_sizes=target_sizes, threshold=conf
@@ -87,6 +87,7 @@ class DETRHandler(BaseHandler):
             results["scores"].cpu().numpy(),
             results["labels"].cpu().numpy(),
             results["boxes"].cpu().numpy(),
+            strict=False,
         ):
             dets.append(
                 {
@@ -107,12 +108,11 @@ class DETRHandler(BaseHandler):
 class OWLViTHandler(BaseHandler):
     """Google OWL-ViT 开放词汇检测"""
 
-    def load(self, model_id: str) -> Tuple[Any, Any]:
+    def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
-        if self._device.startswith("cuda") and torch is not None:
-            model = model.to("cuda")
+        model = self._model_to_device(model)
         return model, processor
 
     def infer(
@@ -124,12 +124,12 @@ class OWLViTHandler(BaseHandler):
         conf: float = 0.1,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         t0 = time.time()
         queries = text_queries or ["object"]
         pil_image = self.bgr_to_pil(image)
@@ -152,6 +152,7 @@ class OWLViTHandler(BaseHandler):
             results["scores"].cpu().numpy(),
             results["labels"].cpu().numpy(),
             results["boxes"].cpu().numpy(),
+            strict=False,
         ):
             dets.append(
                 {
@@ -174,12 +175,11 @@ class OWLViTHandler(BaseHandler):
 class GroundingDINOHandler(BaseHandler):
     """IDEA-Research Grounding DINO 开放集检测"""
 
-    def load(self, model_id: str) -> Tuple[Any, Any]:
+    def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
-        if self._device.startswith("cuda") and torch is not None:
-            model = model.to("cuda")
+        model = self._model_to_device(model)
         return model, processor
 
     def infer(
@@ -191,12 +191,12 @@ class GroundingDINOHandler(BaseHandler):
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         if torch is None:
             raise RuntimeError("torch not installed")
 
@@ -237,17 +237,17 @@ class GroundingDINOHandler(BaseHandler):
         scores = result.get("scores")
         det_labels = result.get("labels") or result.get("text_labels") or []
 
-        boxes_np = (
-            boxes.detach().cpu().numpy() if hasattr(boxes, "detach") else np.zeros((0, 4))
-        )
-        scores_np = (
-            scores.detach().cpu().numpy() if hasattr(scores, "detach") else np.zeros((0,))
-        )
+        boxes_np = boxes.detach().cpu().numpy() if hasattr(boxes, "detach") else np.zeros((0, 4))
+        scores_np = scores.detach().cpu().numpy() if hasattr(scores, "detach") else np.zeros((0,))
 
-        dets: List[Dict[str, Any]] = []
+        dets: list[dict[str, Any]] = []
         for i in range(int(scores_np.shape[0])):
             raw_label = det_labels[i] if i < len(det_labels) else ""
-            label = ", ".join(str(x) for x in raw_label) if isinstance(raw_label, (list, tuple)) else str(raw_label)
+            label = (
+                ", ".join(str(x) for x in raw_label)
+                if isinstance(raw_label, (list, tuple))
+                else str(raw_label)
+            )
             dets.append(
                 {
                     "bbox": [float(v) for v in boxes_np[i].tolist()],
@@ -262,8 +262,8 @@ class GroundingDINOHandler(BaseHandler):
         )
 
     @staticmethod
-    def _prepare_labels(queries: List[str]) -> List[str]:
-        labels: List[str] = []
+    def _prepare_labels(queries: list[str]) -> list[str]:
+        labels: list[str] = []
         for q in queries:
             q = str(q).strip()
             if not q:

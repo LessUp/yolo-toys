@@ -1,9 +1,8 @@
 """
 应用配置 - 使用 Pydantic Settings 统一管理环境变量
 """
-import os
+
 from functools import lru_cache
-from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -39,7 +38,7 @@ class AppSettings(BaseSettings):
         return bool(v)
 
     @property
-    def origins_list(self) -> List[str]:
+    def origins_list(self) -> list[str]:
         raw = self.allow_origins.strip()
         if raw == "*":
             return ["*"]

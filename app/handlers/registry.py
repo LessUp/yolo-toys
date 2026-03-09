@@ -1,7 +1,8 @@
 """
 模型注册表 - 集中管理所有模型元数据与处理器映射
 """
-from typing import Any, Dict, List, Optional
+
+from typing import Any
 
 from app.handlers.base import BaseHandler
 from app.handlers.blip_handler import BLIPCaptionHandler, BLIPVQAHandler
@@ -35,7 +36,7 @@ _CATEGORY_HANDLER_MAP = {
 }
 
 # 模型注册表：模型 ID → 元数据
-MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
+MODEL_REGISTRY: dict[str, dict[str, Any]] = {
     # YOLO 检测
     "yolov8n.pt": {
         "category": ModelCategory.YOLO_DETECT,
@@ -190,7 +191,7 @@ class HandlerRegistry:
 
     def __init__(self, device: str):
         self._device = device
-        self._handler_cache: Dict[str, BaseHandler] = {}
+        self._handler_cache: dict[str, BaseHandler] = {}
 
     def get_handler(self, model_id: str) -> BaseHandler:
         """获取模型对应的处理器实例（带缓存）"""
@@ -240,9 +241,9 @@ class HandlerRegistry:
         raise ValueError(f"Unknown model: {model_id}")
 
 
-def get_available_models() -> Dict[str, Dict[str, Any]]:
+def get_available_models() -> dict[str, dict[str, Any]]:
     """获取可用模型列表，按类别分组"""
-    categories: Dict[str, Dict[str, Any]] = {}
+    categories: dict[str, dict[str, Any]] = {}
     for cat_key, display_name in _CATEGORY_DISPLAY_NAMES.items():
         categories[cat_key] = {"name": display_name, "models": []}
 
@@ -262,6 +263,6 @@ def get_available_models() -> Dict[str, Dict[str, Any]]:
     return {k: v for k, v in categories.items() if v["models"]}
 
 
-def get_model_info(model_id: str) -> Optional[Dict[str, Any]]:
+def get_model_info(model_id: str) -> dict[str, Any] | None:
     """获取模型信息"""
     return MODEL_REGISTRY.get(model_id)

@@ -1,6 +1,7 @@
 """
 FastAPI 应用入口 - 使用 lifespan 管理生命周期
 """
+
 import logging
 from contextlib import asynccontextmanager
 

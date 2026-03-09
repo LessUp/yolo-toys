@@ -1,25 +1,25 @@
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
 class Detection(BaseModel):
-    bbox: List[float]
+    bbox: list[float]
     score: float
     label: str
-    polygons: Optional[List[List[float]]] = None
-    keypoints: Optional[List[List[float]]] = None
+    polygons: list[list[float]] | None = None
+    keypoints: list[list[float]] | None = None
 
 
 class InferenceResponse(BaseModel):
     width: int
     height: int
-    detections: List[Detection] = Field(default_factory=list)
+    detections: list[Detection] = Field(default_factory=list)
     inference_time: float
     task: Literal["detect", "segment", "pose", "caption", "vqa"]
-    caption: Optional[str] = None
-    question: Optional[str] = None
-    answer: Optional[str] = None
-    text_queries: Optional[List[str]] = None
-    model: Optional[str] = None
-    params: Optional[Dict[str, Any]] = None
+    caption: str | None = None
+    question: str | None = None
+    answer: str | None = None
+    text_queries: list[str] | None = None
+    model: str | None = None
+    params: dict[str, Any] | None = None

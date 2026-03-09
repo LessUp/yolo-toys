@@ -1,8 +1,9 @@
 """
 BLIP 多模态模型处理器 - 图像描述 / 视觉问答
 """
+
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -30,12 +31,11 @@ def _require_hf():
 class BLIPCaptionHandler(BaseHandler):
     """BLIP 图像描述生成"""
 
-    def load(self, model_id: str) -> Tuple[Any, Any]:
+    def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
         processor = BlipProcessor.from_pretrained(model_id)
         model = BlipForConditionalGeneration.from_pretrained(model_id)
-        if self._device.startswith("cuda") and torch is not None:
-            model = model.to("cuda")
+        model = self._model_to_device(model)
         return model, processor
 
     def infer(
@@ -47,12 +47,12 @@ class BLIPCaptionHandler(BaseHandler):
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         t0 = time.time()
         pil_image = self.bgr_to_pil(image)
 
@@ -71,14 +71,13 @@ class BLIPCaptionHandler(BaseHandler):
 class BLIPVQAHandler(BaseHandler):
     """BLIP 视觉问答"""
 
-    def load(self, model_id: str) -> Tuple[Any, Any]:
+    def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
         from transformers import BlipForQuestionAnswering
 
         processor = BlipProcessor.from_pretrained(model_id)
         model = BlipForQuestionAnswering.from_pretrained(model_id)
-        if self._device.startswith("cuda") and torch is not None:
-            model = model.to("cuda")
+        model = self._model_to_device(model)
         return model, processor
 
     def infer(
@@ -90,12 +89,12 @@ class BLIPVQAHandler(BaseHandler):
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         t0 = time.time()
         q = question or "What is in this image?"
         pil_image = self.bgr_to_pil(image)

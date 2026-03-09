@@ -5,18 +5,14 @@
 每种模型类型的加载和推理逻辑被封装在独立的 Handler 中。
 本模块仅保留面向上层（main.py / tests）的公共 API。
 """
+
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
-from app.handlers.registry import (
-    HandlerRegistry,
-    ModelCategory,
-    get_available_models,
-    get_model_info,
-)
+from app.handlers.registry import HandlerRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +30,12 @@ def get_device() -> str:
     if torch is not None:
         if hasattr(torch, "cuda") and torch.cuda.is_available():
             return "cuda:0"
-        if hasattr(torch, "backends") and hasattr(torch.backends, "mps"):
-            if torch.backends.mps.is_available():
-                return "mps"
+        if (
+            hasattr(torch, "backends")
+            and hasattr(torch.backends, "mps")
+            and torch.backends.mps.is_available()
+        ):
+            return "mps"
     return "cpu"
 
 
@@ -47,7 +46,7 @@ class ModelManager:
         self._device = get_device()
         self._registry = HandlerRegistry(self._device)
         # 缓存：model_id → (model, processor)
-        self._cache: Dict[str, tuple] = {}
+        self._cache: dict[str, tuple] = {}
 
     @property
     def device(self) -> str:
@@ -72,12 +71,12 @@ class ModelManager:
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         """统一推理接口 - 自动路由到对应 Handler"""
         # 确保模型已加载
         self.load_model(model_id)

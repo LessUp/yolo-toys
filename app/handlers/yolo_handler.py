@@ -1,8 +1,9 @@
 """
 YOLO 模型处理器 - 检测 / 分割 / 姿态估计
 """
+
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -12,7 +13,7 @@ from app.handlers.base import BaseHandler
 class YOLOHandler(BaseHandler):
     """处理所有 YOLO 系列模型（detect / segment / pose）"""
 
-    def load(self, model_id: str) -> Tuple[Any, None]:
+    def load(self, model_id: str) -> tuple[Any, None]:
         try:
             from ultralytics import YOLO
         except ImportError as exc:
@@ -22,22 +23,22 @@ class YOLOHandler(BaseHandler):
     def infer(
         self,
         model: Any,
-        processor: Optional[Any],
+        processor: Any | None,
         image: np.ndarray,
         *,
         conf: float = 0.25,
         iou: float = 0.45,
         max_det: int = 300,
-        device: Optional[str] = None,
-        imgsz: Optional[int] = None,
+        device: str | None = None,
+        imgsz: int | None = None,
         half: bool = False,
-        text_queries: Optional[List[str]] = None,
-        question: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_queries: list[str] | None = None,
+        question: str | None = None,
+    ) -> dict[str, Any]:
         t0 = time.time()
         dev = device or self._device
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "conf": conf,
             "iou": iou,
             "max_det": max_det,
@@ -74,9 +75,9 @@ class YOLOHandler(BaseHandler):
         return "detect"
 
     @staticmethod
-    def _parse_detections(r: Any, task: str) -> List[Dict[str, Any]]:
+    def _parse_detections(r: Any, task: str) -> list[dict[str, Any]]:
         boxes = r.boxes
-        dets: List[Dict[str, Any]] = []
+        dets: list[dict[str, Any]] = []
 
         if boxes is None or boxes.xyxy is None or boxes.xyxy.shape[0] == 0:
             return dets
@@ -87,7 +88,7 @@ class YOLOHandler(BaseHandler):
         names = r.names
 
         for i in range(xyxy.shape[0]):
-            item: Dict[str, Any] = {
+            item: dict[str, Any] = {
                 "bbox": [float(v) for v in xyxy[i].tolist()],
                 "score": float(scores[i]),
                 "label": (

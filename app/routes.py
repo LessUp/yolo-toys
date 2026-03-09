@@ -1,19 +1,29 @@
 """
 API 路由定义 - 从 main.py 中提取，职责单一
 """
+
 import asyncio
+import contextlib
 import json
 import logging
-from typing import Optional
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
+from app import __version__ as VERSION
 from app.config import get_settings
+from app.handlers.registry import get_available_models, get_model_info
 from app.model_manager import model_manager
 from app.schemas import InferenceResponse
-from app import __version__ as VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +36,7 @@ router = APIRouter()
 # ------------------------------------------------------------------
 # 工具函数
 # ------------------------------------------------------------------
+
 
 async def _read_upload_image(file: UploadFile) -> np.ndarray:
     if file.content_type is None or not file.content_type.startswith("image/"):
@@ -44,7 +55,7 @@ async def _read_upload_image(file: UploadFile) -> np.ndarray:
     return img
 
 
-def _get_optional_float(value: Optional[str]) -> Optional[float]:
+def _get_optional_float(value: str | None) -> float | None:
     if value is None or value == "":
         return None
     try:
@@ -53,7 +64,7 @@ def _get_optional_float(value: Optional[str]) -> Optional[float]:
         return None
 
 
-def _get_optional_int(value: Optional[str]) -> Optional[int]:
+def _get_optional_int(value: str | None) -> int | None:
     if value is None or value == "":
         return None
     try:
@@ -62,7 +73,7 @@ def _get_optional_int(value: Optional[str]) -> Optional[int]:
         return None
 
 
-def _get_optional_bool(value: Optional[str]) -> Optional[bool]:
+def _get_optional_bool(value: str | None) -> bool | None:
     if value is None or value == "":
         return None
     lowered = value.lower()
@@ -76,6 +87,7 @@ def _get_optional_bool(value: Optional[str]) -> Optional[bool]:
 # ------------------------------------------------------------------
 # REST 端点
 # ------------------------------------------------------------------
+
 
 @router.get("/health")
 async def health():
@@ -96,8 +108,6 @@ async def health():
 @router.get("/models")
 async def list_models():
     """获取所有可用模型，按类别分组"""
-    from app.handlers.registry import get_available_models
-
     return {
         "default": settings.model_name,
         "categories": get_available_models(),
@@ -107,8 +117,6 @@ async def list_models():
 @router.get("/models/{model_id:path}")
 async def model_info(model_id: str):
     """获取指定模型的详细信息"""
-    from app.handlers.registry import get_model_info
-
     info = get_model_info(model_id)
     if not info:
         raise HTTPException(status_code=404, detail="Model not found")
@@ -116,7 +124,7 @@ async def model_info(model_id: str):
 
 
 @router.get("/labels")
-async def labels(model: Optional[str] = Query(default=None)):
+async def labels(model: str | None = Query(default=None)):
     """获取模型的标签列表"""
     model_id = model or settings.model_name
     try:
@@ -130,21 +138,21 @@ async def labels(model: Optional[str] = Query(default=None)):
             ordered = []
         return {"model": model_id, "labels": ordered}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/infer", response_model=InferenceResponse, response_model_exclude_none=True)
 async def infer(
     file: UploadFile = File(...),
-    conf: Optional[float] = Query(default=None, description="置信度阈值"),
-    iou: Optional[float] = Query(default=None, description="IoU 阈值"),
-    device: Optional[str] = Query(default=None, description="设备 (cpu/cuda/mps)"),
-    max_det: Optional[int] = Query(default=None, description="最大检测数"),
-    model: Optional[str] = Query(default=None, description="模型 ID"),
-    imgsz: Optional[int] = Query(default=None, description="推理尺寸"),
-    half: Optional[bool] = Query(default=None, description="FP16 半精度"),
-    text_queries: Optional[str] = Query(default=None, description="文本查询（用于开放词汇检测）"),
-    question: Optional[str] = Query(default=None, description="问题（用于 VQA）"),
+    conf: float | None = Query(default=None, description="置信度阈值"),
+    iou: float | None = Query(default=None, description="IoU 阈值"),
+    device: str | None = Query(default=None, description="设备 (cpu/cuda/mps)"),
+    max_det: int | None = Query(default=None, description="最大检测数"),
+    model: str | None = Query(default=None, description="模型 ID"),
+    imgsz: int | None = Query(default=None, description="推理尺寸"),
+    half: bool | None = Query(default=None, description="FP16 半精度"),
+    text_queries: str | None = Query(default=None, description="文本查询（用于开放词汇检测）"),
+    question: str | None = Query(default=None, description="问题（用于 VQA）"),
 ):
     """统一推理端点"""
     img = await _read_upload_image(file)
@@ -172,16 +180,16 @@ async def infer(
             result["model"] = model_id
             return result
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.exception("推理异常: model=%s", model_id)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/caption", response_model=InferenceResponse, response_model_exclude_none=True)
 async def caption(
     file: UploadFile = File(...),
-    model: Optional[str] = Query(default="Salesforce/blip-image-captioning-base"),
+    model: str | None = Query(default="Salesforce/blip-image-captioning-base"),
 ):
     """图像描述生成"""
     img = await _read_upload_image(file)
@@ -196,17 +204,17 @@ async def caption(
             result["model"] = model
             return result
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.exception("Caption 推理异常: model=%s", model)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/vqa", response_model=InferenceResponse, response_model_exclude_none=True)
 async def vqa(
     file: UploadFile = File(...),
     question: str = Query(..., description="要问的问题"),
-    model: Optional[str] = Query(default="Salesforce/blip-vqa-base"),
+    model: str | None = Query(default="Salesforce/blip-vqa-base"),
 ):
     """视觉问答"""
     img = await _read_upload_image(file)
@@ -222,45 +230,73 @@ async def vqa(
             result["model"] = model
             return result
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.exception("VQA 推理异常: model=%s", model)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ------------------------------------------------------------------
 # WebSocket 端点
 # ------------------------------------------------------------------
 
+
+def _parse_ws_state(params) -> dict:
+    """从 WebSocket query params 解析初始推理状态"""
+    text_queries_str = params.get("text_queries") or ""
+    text_queries = (
+        [q.strip() for q in text_queries_str.split(",") if q.strip()] if text_queries_str else None
+    )
+    return {
+        "model_id": params.get("model") or settings.model_name,
+        "conf": _get_optional_float(params.get("conf")) or settings.conf_threshold,
+        "iou": _get_optional_float(params.get("iou")) or settings.iou_threshold,
+        "max_det": _get_optional_int(params.get("max_det")) or settings.max_det,
+        "device": params.get("device") or None,
+        "imgsz": _get_optional_int(params.get("imgsz")),
+        "half": _get_optional_bool(params.get("half")) or False,
+        "text_queries": text_queries,
+        "question": params.get("question") or None,
+    }
+
+
+def _apply_ws_config(state: dict, config: dict) -> None:
+    """将客户端 config 消息合并到当前推理状态"""
+    for key in ("model_id", "conf", "iou", "max_det", "device", "imgsz", "half"):
+        cfg_key = "model" if key == "model_id" else key
+        if cfg_key in config:
+            state[key] = config[cfg_key]
+    if config.get("text_queries"):
+        state["text_queries"] = config["text_queries"]
+    if config.get("question"):
+        state["question"] = config["question"]
+
+
+def _decode_ws_frame(data: bytes) -> np.ndarray | None:
+    """解码 WebSocket 二进制帧为 OpenCV 图像"""
+    nparr = np.frombuffer(data, np.uint8)
+    return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+
+async def _ws_send_json(websocket: WebSocket, payload: dict) -> None:
+    """发送 JSON 消息"""
+    await websocket.send_text(json.dumps(payload, ensure_ascii=False))
+
+
 @router.websocket("/ws")
 async def websocket_infer(websocket: WebSocket):
     """WebSocket 实时推理"""
-    params = websocket.query_params
-    conf = _get_optional_float(params.get("conf")) or settings.conf_threshold
-    iou = _get_optional_float(params.get("iou")) or settings.iou_threshold
-    max_det = _get_optional_int(params.get("max_det")) or settings.max_det
-    device = params.get("device") or None
-    model_id = params.get("model") or settings.model_name
-    imgsz = _get_optional_int(params.get("imgsz"))
-    half = _get_optional_bool(params.get("half")) or False
-    text_queries_str = params.get("text_queries") or ""
-    question = params.get("question") or None
-
-    text_queries = None
-    if text_queries_str:
-        text_queries = [q.strip() for q in text_queries_str.split(",") if q.strip()]
+    state = _parse_ws_state(websocket.query_params)
 
     await websocket.accept()
-    await websocket.send_text(
-        json.dumps(
-            {
-                "type": "ready",
-                "message": "connected",
-                "model": model_id,
-                "device": model_manager.device,
-            },
-            ensure_ascii=False,
-        )
+    await _ws_send_json(
+        websocket,
+        {
+            "type": "ready",
+            "message": "connected",
+            "model": state["model_id"],
+            "device": model_manager.device,
+        },
     )
 
     loop = asyncio.get_running_loop()
@@ -275,6 +311,7 @@ async def websocket_infer(websocket: WebSocket):
             if message.get("type") == "websocket.disconnect":
                 break
 
+            # --- 文本消息：配置更新 ---
             data = message.get("bytes")
             if data is None:
                 text = message.get("text")
@@ -282,40 +319,27 @@ async def websocket_infer(websocket: WebSocket):
                     try:
                         config = json.loads(text)
                         if config.get("type") == "config":
-                            model_id = config.get("model", model_id)
-                            conf = config.get("conf", conf)
-                            iou = config.get("iou", iou)
-                            max_det = config.get("max_det", max_det)
-                            device = config.get("device", device)
-                            imgsz = config.get("imgsz", imgsz)
-                            half = config.get("half", half)
-                            if config.get("text_queries"):
-                                text_queries = config["text_queries"]
-                            if config.get("question"):
-                                question = config["question"]
-                            await websocket.send_text(
-                                json.dumps(
-                                    {"type": "config_updated", "model": model_id},
-                                    ensure_ascii=False,
-                                )
+                            _apply_ws_config(state, config)
+                            await _ws_send_json(
+                                websocket,
+                                {
+                                    "type": "config_updated",
+                                    "model": state["model_id"],
+                                },
                             )
                     except json.JSONDecodeError:
                         pass
                 continue
 
+            # --- 二进制消息：图像帧 ---
             if len(data) > settings.max_upload_bytes:
-                await websocket.send_text(
-                    json.dumps({"type": "error", "detail": "file too large"}, ensure_ascii=False)
-                )
+                await _ws_send_json(websocket, {"type": "error", "detail": "file too large"})
                 continue
 
-            nparr = np.frombuffer(data, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            img = _decode_ws_frame(data)
             if img is None:
-                await websocket.send_text(
-                    json.dumps(
-                        {"type": "error", "detail": "failed to decode image"}, ensure_ascii=False
-                    )
+                await _ws_send_json(
+                    websocket, {"type": "error", "detail": "failed to decode image"}
                 )
                 continue
 
@@ -323,32 +347,26 @@ async def websocket_infer(websocket: WebSocket):
                 async with semaphore:
                     result = await loop.run_in_executor(
                         None,
-                        lambda: model_manager.infer(
-                            model_id=model_id,
-                            image=img,
-                            conf=conf,
-                            iou=iou,
-                            max_det=max_det,
-                            device=device,
-                            imgsz=imgsz,
-                            half=half,
-                            text_queries=text_queries,
-                            question=question,
+                        lambda s=state, i=img: model_manager.infer(
+                            model_id=s["model_id"],
+                            image=i,
+                            conf=s["conf"],
+                            iou=s["iou"],
+                            max_det=s["max_det"],
+                            device=s["device"],
+                            imgsz=s["imgsz"],
+                            half=s["half"],
+                            text_queries=s["text_queries"],
+                            question=s["question"],
                         ),
                     )
-                result["model"] = model_id
+                result["model"] = state["model_id"]
             except Exception as exc:
                 logger.warning("WS 推理异常: %s", exc)
-                await websocket.send_text(
-                    json.dumps({"type": "error", "detail": str(exc)}, ensure_ascii=False)
-                )
+                await _ws_send_json(websocket, {"type": "error", "detail": str(exc)})
                 continue
 
-            await websocket.send_text(
-                json.dumps({"type": "result", "data": result}, ensure_ascii=False)
-            )
+            await _ws_send_json(websocket, {"type": "result", "data": result})
     finally:
-        try:
+        with contextlib.suppress(Exception):
             await websocket.close()
-        except Exception:
-            pass
