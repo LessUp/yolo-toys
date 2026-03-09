@@ -111,24 +111,32 @@ docker compose down --remove-orphans
 ```text
 YOLO-Toys/
 ├─ app/
-│  ├─ main.py          # FastAPI 入口，挂载路由和静态前端
-│  ├─ model_manager.py # 多模型管理器（YOLO/HF/多模态）
-│  └─ schemas.py       # Pydantic 模型（推理返回结构）
+│  ├─ main.py             # FastAPI 入口 + lifespan 生命周期
+│  ├─ config.py           # Pydantic Settings 统一配置
+│  ├─ routes.py           # API 路由（REST + WebSocket）
+│  ├─ model_manager.py    # 模型管理器（缓存 + Handler 委托）
+│  ├─ schemas.py          # Pydantic 响应模型
+│  └─ handlers/           # 策略模式处理器
+│     ├─ base.py          # BaseHandler 抽象基类
+│     ├─ registry.py      # 模型注册表 + 处理器工厂
+│     ├─ yolo_handler.py  # YOLO 检测/分割/姿态
+│     ├─ hf_handler.py    # DETR / OWL-ViT / Grounding DINO
+│     └─ blip_handler.py  # BLIP Caption / VQA
 ├─ frontend/
-│  ├─ index.html       # 单页前端入口
-│  ├─ style.css        # 基础暗色 UI + 布局样式
-│  └─ app.js           # 前端核心逻辑（摄像头、本地图片、推理、绘制、侧边栏）
-├─ tests/
-│  └─ test_api.py      # 对 /health、/models、/infer、/caption、/vqa 的基础 API 测试
+│  ├─ index.html          # UI 界面
+│  ├─ style.css           # 深色/浅色主题样式
+│  ├─ app.js              # 前端入口（ES Module）
+│  └─ js/                 # 前端模块 (api, camera, draw)
+├─ tests/                 # API + WebSocket + 单元测试
 ├─ docs/
-│  └─ README.md        # 本教学文档
+│  └─ README.md           # 本教学文档
 ├─ Dockerfile
 ├─ docker-compose.yml
 ├─ Makefile
 ├─ requirements.txt
 ├─ requirements-dev.txt
-├─ pyproject.toml      # Black / Ruff / isort / pytest 配置
-└─ README.md           # 项目简要说明与运行指南
+├─ pyproject.toml         # Ruff lint + format + pytest 配置
+└─ README.md              # 项目简要说明与运行指南
 ```
 
 你可以对照源码一起看本教学文档，效果会更好。

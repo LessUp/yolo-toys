@@ -34,6 +34,7 @@ jobs:
       - name: Checkout (sparse — skip large model files)
         uses: actions/checkout@v4
         with:
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
             index.md
             _config.yml

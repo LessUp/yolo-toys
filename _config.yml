@@ -3,6 +3,7 @@ description: 多模型实时视觉识别系统 — YOLO 检测/分割/姿态 · 
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
   - jekyll-remote-theme
+  - jekyll-seo-tag
 repository: LessUp/yolo-toys
 show_downloads: false
 
@@ -10,6 +11,26 @@ show_downloads: false
 url: https://lessup.github.io
 baseurl: /yolo-toys
 lang: zh-CN
+author: LessUp
+logo: /yolo-toys/assets/logo.png
+
+# Markdown rendering
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+
+# Default layout for all pages
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+  - scope:
+      path: "changelog"
+    values:
+      layout: default
 
 # Exclude large / irrelevant files from Jekyll build
 exclude:
@@ -37,3 +58,6 @@ exclude:
   - .editorconfig
   - .env.example
   - .dockerignore
+  - Gemfile
+  - Gemfile.lock
+  - vendor

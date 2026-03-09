@@ -1,3 +1,7 @@
+---
+title: "2025-11-23 — GPU 与精度相关修改"
+---
+
 # 2025-11-23 GPU 与精度相关修改
 
 - 更新 `docker-compose.yml` 中 `MODEL_NAME` 默认值为 `yolov8s.pt`，提升默认识别精度。

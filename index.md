@@ -212,6 +212,19 @@ yolo-toys/
 
 ---
 
+## 最近更新
+
+| 日期 | 变更 |
+|------|------|
+| 2026-03-10 | GitHub Pages 第二轮优化 — changelog 索引、kramdown GFM、SEO 增强 |
+| 2026-03-09 | GitHub Pages & 文档优化 — 项目主页重写、SEO 元数据、sparse-checkout |
+| 2026-02-25 | 前端 UI 美化 — Inter/JetBrains Mono 字体、设计 Token、动效系统 |
+| 2026-02-13 | **v3.0 架构重构** — 策略模式、Pydantic Settings、lifespan、测试 6→16 |
+
+[查看完整更新日志 →](changelog/)
+
+---
+
 ## 文档
 
 - [**项目 README**](README.md) — 快速上手指南

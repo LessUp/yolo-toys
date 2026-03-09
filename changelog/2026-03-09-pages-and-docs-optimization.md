@@ -1,3 +1,7 @@
+---
+title: "2026-03-09 — GitHub Pages & 文档优化"
+---
+
 # 2026-03-09 — GitHub Pages & 文档优化
 
 ## GitHub Pages
