@@ -6,19 +6,25 @@ Thanks for your interest in contributing!
 1. Fork and clone the repo.
 2. Create a new branch: `git checkout -b feat/your-change`.
 3. Create a virtualenv and install deps:
-   - `python3 -m venv .venv`
-   - `.venv/bin/pip install -r requirements.txt`
-   - `.venv/bin/pip install -r requirements-dev.txt`
-   - `pre-commit install`
+   ```bash
+   python -m venv .venv
+   # Linux/macOS: source .venv/bin/activate
+   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
+   pre-commit install
+   ```
 4. Run checks locally:
-   - `pre-commit run --all-files`
-   - `python -m pytest`
+   ```bash
+   pre-commit run --all-files   # Ruff lint + format
+   python -m pytest             # Tests
+   ```
 5. Commit, push, and open a Pull Request.
 
 ## Guidelines
 - Keep PRs small and focused. Include description, screenshots if UI changes.
 - Include tests when possible. Avoid large binary files in git.
-- Follow the style configs in `pyproject.toml` and pre-commit hooks.
+- Code style: Ruff (lint + format), configured in `pyproject.toml`.
 - Prefer Conventional Commits style for commit messages (e.g. `feat: ...`, `fix: ...`).
 
 ## Issues

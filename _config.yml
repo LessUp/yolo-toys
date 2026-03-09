@@ -1,7 +1,39 @@
 title: YOLO-Toys
-description: 多模型实时视觉识别系统 — YOLO 检测/分割/姿态 · DETR · OWL-ViT · BLIP Caption/VQA · WebSocket 流式推理
+description: 多模型实时视觉识别系统 — YOLO 检测/分割/姿态 · DETR · OWL-ViT · Grounding DINO · BLIP Caption/VQA · WebSocket 流式推理
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
   - jekyll-remote-theme
 repository: LessUp/yolo-toys
 show_downloads: false
+
+# SEO & metadata
+url: https://lessup.github.io
+baseurl: /yolo-toys
+lang: zh-CN
+
+# Exclude large / irrelevant files from Jekyll build
+exclude:
+  - "*.pt"
+  - "*.onnx"
+  - "*.engine"
+  - .git
+  - .github
+  - .venv
+  - .pytest_cache
+  - .ruff_cache
+  - __pycache__
+  - node_modules
+  - app
+  - frontend
+  - tests
+  - runs
+  - Dockerfile
+  - docker-compose.yml
+  - Makefile
+  - requirements.txt
+  - requirements-dev.txt
+  - pyproject.toml
+  - .pre-commit-config.yaml
+  - .editorconfig
+  - .env.example
+  - .dockerignore

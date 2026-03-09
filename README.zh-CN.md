@@ -1,291 +1,197 @@
-# YOLO-Toys - 多模型实时视觉识别系统
+# YOLO-Toys — 多模型实时视觉识别系统
 
-[English](README.md) | 简体中文
-
+[![CI](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml/badge.svg)](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml)
+[![Pages](https://github.com/LessUp/yolo-toys/actions/workflows/pages.yml/badge.svg)](https://lessup.github.io/yolo-toys/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-5E60CE)
 
-> 支持 YOLO、HuggingFace Transformers、多模态模型的实时视频物体识别平台
+[English](README.md) | 简体中文 | [项目主页](https://lessup.github.io/yolo-toys/)
 
-## ✨ v3.0 - 架构重构
-- 🏗️ **策略模式** - 模型处理器拆分为独立 Handler（YOLO / DETR / OWL-ViT / BLIP）
-- ⚙️ **Pydantic Settings** - 统一配置管理，替代散乱的 `os.getenv`
-- 🔄 **Lifespan** - 使用现代 FastAPI lifespan 替代已弃用的 `on_event`
-- 📦 **路由提取** - `main.py` 拆分为 `routes.py`，职责更清晰
-- 📝 **结构化日志** - `logging` 替代 `print`
-- 🧪 **测试增强** - WebSocket、边界输入、注册表单元测试全覆盖
-- 🎯 **前端优化** - 提取 `buildInferUrl` 消除 URL 构建重复代码
-
-## ✨ v2.0 特性
-- 🔄 **多模型动态切换** - YOLO 检测/分割/姿态、DETR、OWL-ViT、BLIP
-- 🤖 **HuggingFace 集成** - 支持开放词汇检测和多模态模型
-- 💬 **多模态功能** - 图像描述生成、视觉问答 (VQA)
-- 🎨 **全新 UI 设计** - 现代化深色/浅色主题
-- 💡 **功能提示** - 鼠标悬浮显示详细说明
-- 🔔 **Toast 通知** - 实时操作反馈
-
-## 文档导航
-- [详细教学文档（docs/README.md）](docs/README.md)
-- [更新日志](changelog/)
-
-### 快速启动
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 启动服务
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# 访问 http://localhost:8000
-```
-
-### 使用 Docker Compose
-```bash
-cp .env.example .env
-docker compose up --build -d
-# 停止
-docker compose down --remove-orphans
-```
-
-### 使用 Makefile
-```bash
-make install       # 安装运行依赖
-make dev           # 安装开发依赖并安装 pre-commit 钩子
-make lint          # 代码规范检查
-make test          # 运行测试
-make run           # 本地开发启动 uvicorn --reload
-make docker-build  # 构建镜像 vision-det:latest
-make docker-run    # 运行镜像（读取 .env）
-make compose-up    # docker compose up --build -d
-make compose-down  # docker compose down
-```
-
+> 基于 FastAPI + WebSocket 的实时视频物体识别平台，支持 YOLO、HuggingFace Transformers 和多模态模型
 
 ## 功能
 
 ### 支持的模型
+
 | 类别 | 模型 | 说明 |
 |------|------|------|
-| **YOLO 检测** | YOLOv8 n/s/m/l/x | 实时目标检测 |
-| **YOLO 分割** | YOLOv8 n/s/m-seg | 实例分割 |
-| **YOLO 姿态** | YOLOv8 n/s/m-pose | 人体关键点检测 |
-| **DETR** | facebook/detr-resnet-50/101 | Transformer 检测器 |
-| **OWL-ViT** | google/owlvit-base-patch32 | 开放词汇检测 |
+| **YOLO 检测** | YOLOv8 n/s/m/l/x | 实时目标检测（80 类 COCO） |
+| **YOLO 分割** | YOLOv8 n/s/m-seg | 实例分割，像素级掩膜 |
+| **YOLO 姿态** | YOLOv8 n/s/m-pose | 人体 17 关键点检测 |
+| **DETR** | facebook/detr-resnet-50/101 | 端到端 Transformer 检测器 |
+| **OWL-ViT** | google/owlvit-base-patch32 | 零样本开放词汇检测 |
+| **Grounding DINO** | IDEA-Research/grounding-dino-tiny | 开放集检测，文本提示定位 |
 | **BLIP Caption** | Salesforce/blip-image-captioning | 图像描述生成 |
 | **BLIP VQA** | Salesforce/blip-vqa | 视觉问答 |
 
-### 前端功能
-- 📷 摄像头实时采集、Canvas 叠加渲染
-- 🔄 模型类别标签页切换、快速模型选择
-- ⚙️ 可配置服务地址、发送帧率、JPEG 质量
-- 🎛️ 动态调参：置信度、IoU、最大检测数、设备选择
-- 👁️ 显示开关：边框、标签、掩膜、关键点、骨架
-- 🌓 深色/浅色主题切换
-- 💾 设置自动持久化到浏览器本地
+### 前端
+- 摄像头实时采集、Canvas 叠加渲染
+- 模型类别标签页切换、快速模型选择
+- 动态调参：置信度、IoU、最大检测数、设备选择
+- 显示开关：边框、标签、掩膜、关键点、骨架
+- 深色/浅色主题切换，设置自动持久化
 
-### 后端功能
-- 🚀 FastAPI 提供 REST 和 WebSocket 接口
-- 🔌 `/infer` - 统一推理端点
-- 📊 `/models` - 获取可用模型列表
-- 🩺 `/health` - 健康检查
-- 💬 `/caption` - 图像描述生成
-- ❓ `/vqa` - 视觉问答
-- ⚡ 模型缓存、自动设备选择、FP16 加速
+### 后端
+- FastAPI REST + WebSocket 端点
+- `/infer` — 统一推理、`/models` — 可用模型、`/health` — 健康检查
+- `/caption` — 图像描述、`/vqa` — 视觉问答
+- 模型缓存、自动设备选择、FP16 加速
+- `asyncio.Semaphore` 异步并发控制
+
+## 快速开始
+
+```bash
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 访问 http://localhost:8000
+```
+
+### Docker Compose
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+# 停止: docker compose down --remove-orphans
+```
+
+### Makefile
+
+```bash
+make install       # 安装运行依赖
+make dev           # 安装开发依赖 + pre-commit
+make lint          # 代码规范检查 (Ruff lint + format)
+make test          # 运行测试 (pytest)
+make run           # 本地开发启动 uvicorn --reload
+make compose-up    # Docker Compose 启动
+make compose-down  # Docker Compose 停止
+```
+
+## 架构 (v3.0)
+
+```
+Frontend (ES Modules) ──REST / WebSocket──▶ FastAPI Backend
+                                              │
+                                         ModelManager (缓存 + 路由)
+                                              │
+                                        HandlerRegistry
+                                     ┌────┬────┬────┬────┐
+                                    YOLO DETR OWL  DINO BLIP
+                                    (BaseHandler 策略模式)
+```
+
+- **策略模式** — 每种模型类型独立 Handler（YOLO / DETR / OWL-ViT / Grounding DINO / BLIP）
+- **Pydantic Settings** — 环境变量统一管理
+- **Lifespan** — 现代 FastAPI lifespan 替代已弃用的 `on_event`
+- **路由分离** — `main.py` 拆分为 `routes.py`，职责单一
+- **结构化日志** — `logging` 替代 `print`
 
 ## 目录结构
-```
-YOLO-Toys/
-├─ app/
-│  ├─ __init__.py         # 版本号
-│  ├─ main.py             # FastAPI 入口 + lifespan 生命周期
-│  ├─ config.py           # Pydantic Settings 统一配置
-│  ├─ routes.py           # API 路由（REST + WebSocket）
-│  ├─ model_manager.py    # 模型管理器（委托 handlers）
-│  ├─ schemas.py          # Pydantic 响应模型
-│  └─ handlers/           # 策略模式处理器
-│     ├─ base.py          # 处理器基类
-│     ├─ registry.py      # 模型注册表 + 处理器工厂
-│     ├─ yolo_handler.py  # YOLO 检测/分割/姿态
-│     ├─ hf_handler.py    # DETR / OWL-ViT / Grounding DINO
-│     └─ blip_handler.py  # BLIP Caption / VQA
-├─ frontend/
-│  ├─ index.html          # UI 界面
-│  ├─ style.css           # 样式（深色/浅色主题）
-│  ├─ app.js              # 前端入口（ES Module）
-│  └─ js/                 # 前端模块
-│     ├─ api.js           # API / WebSocket 通信
-│     ├─ camera.js        # 摄像头管理
-│     └─ draw.js          # Canvas 绘制（检测框/掩膜/骨架）
-├─ tests/
-│  ├─ __init__.py
-│  └─ test_api.py         # API + WebSocket + 单元测试
-├─ changelog/             # 更新日志
-├─ docs/                  # 详细教学文档
-├─ requirements.txt       # 运行依赖
-└─ requirements-dev.txt   # 开发依赖
-```
 
-## 本地运行
-1) 创建虚拟环境并安装依赖（首次会自动下载 `yolov8s.pt` 权重，需联网）：
 ```
-python3 -m venv .venv
-.venv/bin/python -m pip install -U pip
-.venv/bin/pip install -r requirements.txt
+yolo-toys/
+├── app/
+│   ├── main.py             # FastAPI 入口 + lifespan 生命周期
+│   ├── config.py           # Pydantic Settings 统一配置
+│   ├── routes.py           # API 路由（REST + WebSocket）
+│   ├── model_manager.py    # 模型管理器（缓存 + Handler 委托）
+│   ├── schemas.py          # Pydantic 响应模型
+│   └── handlers/           # 策略模式处理器
+│       ├── base.py         # BaseHandler 抽象基类
+│       ├── registry.py     # 模型注册表 + 处理器工厂
+│       ├── yolo_handler.py # YOLO 检测/分割/姿态
+│       ├── hf_handler.py   # DETR / OWL-ViT / Grounding DINO
+│       └── blip_handler.py # BLIP Caption / VQA
+├── frontend/
+│   ├── index.html          # UI 界面
+│   ├── style.css           # 深色/浅色主题样式
+│   ├── app.js              # 前端入口（ES Module）
+│   └── js/                 # 前端模块 (api, camera, draw)
+├── tests/                  # API + WebSocket + 单元测试
+├── docs/                   # 详细教学文档
+├── Dockerfile              # 多阶段 Docker 构建
+├── docker-compose.yml      # Compose 编排
+└── pyproject.toml          # 项目元数据 + Ruff 配置
 ```
-
-2) 启动服务：
-```
-.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-3) 打开浏览器访问：
-```
-http://localhost:8000/
-```
-点击“开始”按钮授予摄像头权限即可看到识别结果。
 
 ## API 参考
-- `POST /infer`
-  - 查询参数（可选）：
-    - `conf` 浮点，置信度阈值，默认 0.25
-    - `iou` 浮点，NMS IoU 阈值，默认 0.45
-    - `max_det` 整数，最大检测数，默认 300
-    - `device` 字符串，可选 `cpu`/`mps`/`cuda:0`；默认自动
-    - `model` 字符串，模型名或路径（如 `yolov8s.pt`、`yolov8s-seg.pt`）
-    - `imgsz` 整数，推理尺寸（如 640），可加速/影响精度
-    - `half` 布尔，是否使用 FP16（仅 CUDA 可用）
-    - `text_queries` 字符串，逗号分隔（用于 OWL-ViT / Grounding DINO 等开放词汇检测）
-    - `question` 字符串（用于 VQA 问答模型）
-  - 表单数据：`file` 单张图像（JPEG/PNG 等）
-  - 返回：
-    - `width`、`height`：后端解析的输入图像尺寸
-    - `task`：`detect` | `segment` | `pose` | `caption` | `vqa`
-    - `detections`：数组
-      - `bbox`: [x1,y1,x2,y2]
-      - `score`: 置信度
-      - `label`: 类别名
-      - `polygons`?: 针对分割，列表，每个为 `[x,y,...]`
-      - `keypoints`?: 针对姿态，列表，每个为 `[x,y]`
-    - `inference_time`：毫秒
 
-- `GET /health`
-  - 返回运行状态、版本、设备、默认模型与默认阈值（`defaults`）
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/health` | 健康检查（版本、设备、默认配置） |
+| `GET` | `/models` | 获取所有可用模型（按类别分组） |
+| `GET` | `/models/{id}` | 获取指定模型详情 |
+| `GET` | `/labels` | 获取模型标签列表 |
+| `POST` | `/infer` | 统一推理端点（图像 + 参数） |
+| `POST` | `/caption` | 图像描述生成 |
+| `POST` | `/vqa` | 视觉问答 |
+| `WS` | `/ws` | WebSocket 实时推理 |
 
-- `GET /models`
-  - 返回 `default` 与 `categories`（按类别分组的模型列表）
+### `/infer` 参数
 
-- `GET /labels`
-  - 查询参数：`model`（可选），返回该模型的类别标签列表
-
-- `WEBSOCKET /ws`
-  - 支持与 `/infer` 相同的参数（通过查询字符串或前端控件传入）
-  - 连接后发送 JPEG 二进制帧，服务器会按请求参数推理并返回 `{type:"result", data}` JSON 消息
-  - 返回数据结构与 `/infer` 相同；`type:"error"` 时包含 `detail`
-  - 前端在“WebSocket”开关开启时自动使用 WS，否则回退 HTTP
-
-## 说明与建议
-- 默认模型为 `yolov8s.pt`（精度更高，可通过 `MODEL_NAME` 覆盖）。
-- 若是 Apple Silicon（M1/M2/M3），安装的 `torch` 会自动使用 CPU/MPS（Metal）后端（若可用）。
-- 可通过前端“发送帧率”下拉选择调节与后端交互频率，平衡带宽与延迟。
-- 若想跨端访问（手机访问），确保设备与电脑在同一局域网，使用电脑的局域网 IP 访问 `http://<LAN_IP>:8000/`。
-
-## 常见问题
-- 首次推理较慢：模型和权重下载+首次加载编译，后续会缓存。
-- 浏览器权限：请允许访问摄像头；如被拦截，检查浏览器地址栏的权限设置。
-- 依赖安装失败：尝试升级 pip 或使用国内镜像源；也可使用 Conda 创建环境后再安装。
-
-## Docker 运行
-1) 构建镜像：
-```
-docker build -t vision-det .
-```
-
-2) 运行容器（CPU 示例）：
-```
-docker run --rm -it -p 8000:8000 \
-  -e PORT=8000 \
-  -e MODEL_NAME=yolov8s.pt \
-  -e CONF_THRESHOLD=0.25 \
-  -e IOU_THRESHOLD=0.45 \
-  -e DEVICE=cpu \
-  vision-det
-```
-
-GPU（NVIDIA）示例：
-```
-docker run --rm -it -p 8000:8000 \
-  -e PORT=8000 \
-  --gpus all \
-  -e MODEL_NAME=yolov8s.pt \
-  -e CONF_THRESHOLD=0.25 \
-  -e IOU_THRESHOLD=0.45 \
-  -e DEVICE=cuda:0 \
-  vision-det
-```
-
-3) 访问前端：
-```
-http://localhost:8000/
-```
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `conf` | float | 0.25 | 置信度阈值 |
+| `iou` | float | 0.45 | NMS IoU 阈值 |
+| `max_det` | int | 300 | 最大检测数 |
+| `device` | string | auto | `cpu` / `mps` / `cuda:0` |
+| `model` | string | yolov8s.pt | 模型 ID |
+| `imgsz` | int | - | 推理尺寸 |
+| `half` | bool | false | FP16 半精度（仅 CUDA） |
+| `text_queries` | string | - | 逗号分隔文本查询（OWL-ViT / Grounding DINO） |
+| `question` | string | - | VQA 问题 |
 
 ## 配置
-- 后端环境变量（在 shell、.env 或 Docker -e 中设置）：
-  - `PORT`：服务端口，默认 `8000`
-  - `MODEL_NAME`：默认 `yolov8s.pt`（精度更高，推荐在有 GPU 时使用）
-  - `CONF_THRESHOLD`：默认 `0.25`
-  - `IOU_THRESHOLD`：默认 `0.45`
-  - `MAX_DET`：默认 `300`
-  - `DEVICE`：可选 `cuda:0`、`mps`、`cpu`，默认自动选择（CUDA/MPS/CPU）
-  - `SKIP_WARMUP`：任意非空值则跳过启动预热
-  - `ALLOW_ORIGINS`：CORS 允许的来源，默认 `*`，可用逗号分隔多个域
-  - `MAX_UPLOAD_MB`：上传图片大小上限（MB），默认 `10`
-  - `MAX_CONCURRENCY`：后端并发推理限制，默认 `4`
-  - WebSocket 同样受上述参数限制
-- GPU 使用要点：
-  - 本机 NVIDIA / AMD（ROCm）：确保安装 GPU 版 `torch`，不设置 `DEVICE` 时会自动选择；也可显式设置为 `cuda:0`。
-  - 本机 Apple M1/M2/M3：安装支持 MPS 的 `torch`，不设置 `DEVICE` 时自动选择；也可设置为 `mps`。
-  - Docker + NVIDIA：运行容器时添加 `--gpus all`，并通过 `-e DEVICE=cuda:0` 或留空让后端自动选择。
-  - Docker + AMD（ROCm）：使用 ROCm 官方 PyTorch 镜像并映射 ROCm 设备，运行时同样通过 `DEVICE=cuda:0` 或自动选择。
-  - Docker on Apple Silicon：当前仅支持 CPU 推理，容器内不会使用到 M 系列 GPU。
-- 前端参数（页面顶部控件）：
-  - 服务地址：默认 `window.location.origin`，跨设备访问可填 `http://<LAN_IP>:8000`
-  - 发送帧率：3/5/10 fps
-  - 发送宽度：320/480/640 px（上传会按此宽度下采样，降低带宽与延迟）
-  - 模型：从下拉选择或填写自定义模型（需后端可访问）
-  - 开关：框/标签/掩膜/关键点
+
+环境变量（通过 `.env` 文件或 Docker `-e` 设置）：
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `PORT` | 8000 | 服务端口 |
+| `MODEL_NAME` | yolov8s.pt | 默认模型 |
+| `CONF_THRESHOLD` | 0.25 | 默认置信度 |
+| `IOU_THRESHOLD` | 0.45 | 默认 IoU |
+| `MAX_DET` | 300 | 默认最大检测数 |
+| `DEVICE` | (auto) | 计算设备 |
+| `SKIP_WARMUP` | (空) | 非空值跳过启动预热 |
+| `ALLOW_ORIGINS` | * | CORS 允许来源 |
+| `MAX_UPLOAD_MB` | 10 | 上传大小上限 (MB) |
+| `MAX_CONCURRENCY` | 4 | 并发推理限制 |
+
+## 常见问题
+
+- **首次推理较慢** — 模型权重下载 + 首次加载编译，后续会缓存
+- **浏览器权限** — 请允许访问摄像头；如被拦截，检查浏览器地址栏权限设置
+- **跨设备访问** — 确保同一局域网，使用 `http://<LAN_IP>:8000/`
+- **Apple Silicon** — 安装的 `torch` 会自动使用 MPS 后端（若可用）
 
 ## 开发与贡献
-- 安装开发依赖与钩子：
-```
-.venv/bin/pip install -r requirements-dev.txt
+
+```bash
+# 安装开发依赖
+pip install -r requirements-dev.txt
 pre-commit install
-```
-- 代码检查与测试：
-```
+
+# 代码检查
 ruff check .
 ruff format --check .
+
+# 运行测试
 python -m pytest
 ```
-- 代码风格：Ruff（lint + format，见 `pyproject.toml`）
-- 贡献指南：见 `CONTRIBUTING.md`，行为准则见 `CODE_OF_CONDUCT.md`，安全披露见 `SECURITY.md`
- - PR 模板：`.github/PULL_REQUEST_TEMPLATE.md`
- - Issue 模板：`.github/ISSUE_TEMPLATE/bug_report.md`、`.github/ISSUE_TEMPLATE/feature_request.md`
 
-## Release 准备（开源到 GitHub）
-- 初始化仓库并首个提交：
-```
-git init
-git add .
-git commit -m "feat: initial release (FastAPI + YOLOv8 detect/seg/pose, web UI, Docker, CI)"
-```
-- 推送到 GitHub：
-```
-git branch -M main
-git remote add origin git@github.com:<your-org>/<your-repo>.git
-git push -u origin main
-```
-- 启用 GitHub Actions：默认 `CI` 工作流会在 PR/Push 上运行 Lint 和测试
+- 代码风格：Ruff lint + format（配置见 `pyproject.toml`）
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 行为准则：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+## 文档
+
+- [详细教学文档](docs/README.md) — 架构原理、数据流、前后端实现详解
+- [项目主页](https://lessup.github.io/yolo-toys/) — 在线文档
+- [更新日志](changelog/) — 版本历史
+
+## 许可证
+
+MIT License
 

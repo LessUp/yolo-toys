@@ -41,7 +41,7 @@ YOLO-Toys 是一个基于 **FastAPI + Ultralytics YOLOv8 + HuggingFace Transform
   - Docker / docker-compose
   - Makefile
   - pytest
-  - pre-commit（Black + Ruff + isort 等）
+  - pre-commit（Ruff lint + format）
 
 建议在阅读本项目代码之前，先对以下概念有大致了解：
 
@@ -394,7 +394,7 @@ YOLO-Toys/
 
 在首次运行 `make lint` / `make test` 之前，建议先执行一次 `make dev`（安装 `requirements-dev.txt`，包含 `pytest` / `pre-commit` 等）。
 
-- `make lint`：运行 pre-commit，执行 Black / Ruff / isort 等检查和自动修复；
+- `make lint`：运行 pre-commit，执行 Ruff lint + format 检查和自动修复；
 - `make test`：执行 `python -m pytest`，验证基础接口仍然正常；
 - `make run`：本地开发启动 Uvicorn，调试前后端联动。
 

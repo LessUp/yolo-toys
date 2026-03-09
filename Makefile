@@ -1,4 +1,4 @@
-PY?=python3
+PY?=python
 PIP?=$(PY) -m pip
 UVICORN?=uvicorn
 APP=app.main:app
@@ -8,7 +8,7 @@ ENV_FILE?=.env.example
 
 .PHONY: help
 help:
-	@echo "Targets: install, dev, lint, test, run, docker-build, docker-run, compose-up, compose-down"
+	@echo "Targets: install, dev, lint, format, test, run, docker-build, docker-run, compose-up, compose-down"
 
 .PHONY: install
 install:
@@ -23,6 +23,11 @@ dev:
 .PHONY: lint
 lint:
 	pre-commit run --all-files
+
+.PHONY: format
+format:
+	ruff check --fix .
+	ruff format .
 
 .PHONY: test
 test:
