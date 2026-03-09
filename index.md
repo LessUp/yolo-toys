@@ -11,6 +11,7 @@ description: "支持 YOLO 检测/分割/姿态 · DETR · OWL-ViT · Grounding D
 **多模型实时视觉识别系统**
 
 [![CI](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml/badge.svg)](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml)
+[![Pages](https://github.com/LessUp/yolo-toys/actions/workflows/pages.yml/badge.svg)](https://lessup.github.io/yolo-toys/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/LessUp/yolo-toys/blob/main/LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
@@ -216,6 +217,7 @@ yolo-toys/
 
 | 日期 | 变更 |
 |------|------|
+| 2026-03-10 | GitHub Pages 第三轮优化 — CI paths-ignore、sitemap、404 页面、文档修正 |
 | 2026-03-10 | GitHub Pages 第二轮优化 — changelog 索引、kramdown GFM、SEO 增强 |
 | 2026-03-09 | GitHub Pages & 文档优化 — 项目主页重写、SEO 元数据、sparse-checkout |
 | 2026-02-25 | 前端 UI 美化 — Inter/JetBrains Mono 字体、设计 Token、动效系统 |

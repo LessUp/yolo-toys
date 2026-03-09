@@ -2,9 +2,27 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'changelog/**'
+      - '_config.yml'
+      - 'index.md'
+      - 'LICENSE'
+      - '404.md'
+      - '.github/workflows/pages.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'changelog/**'
+      - '_config.yml'
+      - 'index.md'
+      - 'LICENSE'
+      - '404.md'
+      - '.github/workflows/pages.yml'
 
 permissions:
   contents: read

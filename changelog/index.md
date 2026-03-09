@@ -14,6 +14,7 @@ YOLO-Toys 项目的版本历史与变更记录，按时间倒序排列。
 
 | 日期 | 变更 |
 |------|------|
+| [2026-03-10](2026-03-10-pages-round3) | GitHub Pages 第三轮优化 — CI paths-ignore、sitemap、404 页面、文档修正 |
 | [2026-03-10](2026-03-10-pages-round2) | GitHub Pages 第二轮优化 — 文档同步、changelog 索引、kramdown GFM、SEO 增强 |
 | [2026-03-09](2026-03-09-pages-and-docs-optimization) | GitHub Pages & 文档优化 — 项目主页重写、SEO 元数据、sparse-checkout |
 | [2026-02-25](2026-02-25-frontend-ui-beautification) | 前端 UI 美化优化 — 字体系统、设计 Token、动效、深色/浅色主题 |

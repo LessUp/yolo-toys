@@ -57,15 +57,20 @@ YOLO-Toys 是一个基于 **FastAPI + Ultralytics YOLOv8 + HuggingFace Transform
 ### 3.1 本地运行（推荐）
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -U pip
-.venv/bin/pip install -r requirements.txt
+python -m venv .venv
+# Linux/macOS
+source .venv/bin/activate
+# Windows
+# .venv\Scripts\activate
+
+pip install -U pip
+pip install -r requirements.txt
 
 # （可选）安装开发依赖（用于运行测试/代码规范检查）
-.venv/bin/pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt
 
 # 启动服务
-.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 浏览器访问：
