@@ -3,9 +3,23 @@
 """
 
 from functools import lru_cache
+from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
+
+
+def parse_bool_string(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    lowered = value.strip().lower()
+    if lowered == "":
+        return False
+    if lowered in {"1", "true", "yes", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "off"}:
+        return False
+    return None
 
 
 class AppSettings(BaseSettings):
@@ -30,11 +44,14 @@ class AppSettings(BaseSettings):
 
     @field_validator("skip_warmup", mode="before")
     @classmethod
-    def _parse_skip_warmup(cls, v):
+    def _parse_skip_warmup(cls, v: Any):
         if isinstance(v, bool):
             return v
         if isinstance(v, str):
-            return bool(v.strip())
+            parsed = parse_bool_string(v)
+            if parsed is None:
+                raise ValueError("SKIP_WARMUP must be a boolean value")
+            return parsed
         return bool(v)
 
     @property

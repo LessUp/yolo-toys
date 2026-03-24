@@ -20,7 +20,7 @@ from fastapi import (
 )
 
 from app import __version__ as VERSION
-from app.config import get_settings
+from app.config import get_settings, parse_bool_string
 from app.handlers.registry import get_available_models, get_model_info
 from app.model_manager import model_manager
 from app.schemas import InferenceResponse
@@ -74,14 +74,17 @@ def _get_optional_int(value: str | None) -> int | None:
 
 
 def _get_optional_bool(value: str | None) -> bool | None:
-    if value is None or value == "":
+    return parse_bool_string(value)
+
+
+def _parse_text_queries(value: str | list[str] | None) -> list[str] | None:
+    if value is None:
         return None
-    lowered = value.lower()
-    if lowered in {"1", "true", "yes", "on"}:
-        return True
-    if lowered in {"0", "false", "no", "off"}:
-        return False
-    return None
+    if isinstance(value, str):
+        queries = [q.strip() for q in value.split(",") if q.strip()]
+        return queries or None
+    queries = [str(q).strip() for q in value if str(q).strip()]
+    return queries or None
 
 
 # ------------------------------------------------------------------
@@ -158,9 +161,7 @@ async def infer(
     img = await _read_upload_image(file)
     model_id = model or settings.model_name
 
-    queries = None
-    if text_queries:
-        queries = [q.strip() for q in text_queries.split(",") if q.strip()]
+    queries = _parse_text_queries(text_queries)
 
     async with semaphore:
         try:
@@ -243,18 +244,19 @@ async def vqa(
 
 def _parse_ws_state(params) -> dict:
     """从 WebSocket query params 解析初始推理状态"""
-    text_queries_str = params.get("text_queries") or ""
-    text_queries = (
-        [q.strip() for q in text_queries_str.split(",") if q.strip()] if text_queries_str else None
-    )
+    text_queries = _parse_text_queries(params.get("text_queries"))
+    conf = _get_optional_float(params.get("conf"))
+    iou = _get_optional_float(params.get("iou"))
+    max_det = _get_optional_int(params.get("max_det"))
+    half = _get_optional_bool(params.get("half"))
     return {
         "model_id": params.get("model") or settings.model_name,
-        "conf": _get_optional_float(params.get("conf")) or settings.conf_threshold,
-        "iou": _get_optional_float(params.get("iou")) or settings.iou_threshold,
-        "max_det": _get_optional_int(params.get("max_det")) or settings.max_det,
+        "conf": conf if conf is not None else settings.conf_threshold,
+        "iou": iou if iou is not None else settings.iou_threshold,
+        "max_det": max_det if max_det is not None else settings.max_det,
         "device": params.get("device") or None,
         "imgsz": _get_optional_int(params.get("imgsz")),
-        "half": _get_optional_bool(params.get("half")) or False,
+        "half": half if half is not None else False,
         "text_queries": text_queries,
         "question": params.get("question") or None,
     }
@@ -266,10 +268,10 @@ def _apply_ws_config(state: dict, config: dict) -> None:
         cfg_key = "model" if key == "model_id" else key
         if cfg_key in config:
             state[key] = config[cfg_key]
-    if config.get("text_queries"):
-        state["text_queries"] = config["text_queries"]
-    if config.get("question"):
-        state["question"] = config["question"]
+    if "text_queries" in config:
+        state["text_queries"] = _parse_text_queries(config["text_queries"])
+    if "question" in config:
+        state["question"] = config["question"] or None
 
 
 def _decode_ws_frame(data: bytes) -> np.ndarray | None:
