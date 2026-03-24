@@ -194,10 +194,10 @@ function updateVars() {
         max_det: p.maxDet,
         imgsz: p.imgsz,
         half: !!p.half,
+        device: p.device === 'auto' ? null : p.device,
+        text_queries: tq,
+        question: p.question || null,
       };
-      if (p.device !== 'auto') payload.device = p.device;
-      if (tq.length) payload.text_queries = tq;
-      if (p.question) payload.question = p.question;
       ws.send(JSON.stringify(payload));
     } catch {}
   }

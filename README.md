@@ -55,6 +55,8 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
+Note: the current Docker build copies the bundled `yolov8*.pt` weights from the repository into the image. Keep those files present when building locally.
+
 ### Makefile
 
 ```bash

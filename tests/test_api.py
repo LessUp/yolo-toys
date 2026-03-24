@@ -1,5 +1,6 @@
 import io
 import os
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -112,6 +113,47 @@ def test_model_info_not_found(client: TestClient):
     assert r.status_code == 404
 
 
+def test_labels_dict_names(client: TestClient, monkeypatch):
+    from app.model_manager import model_manager
+
+    monkeypatch.setattr(
+        model_manager,
+        "load_model",
+        lambda model_id: SimpleNamespace(model=SimpleNamespace(names={1: "person", 0: "cat"})),
+    )
+
+    r = client.get("/labels?model=yolov8n.pt")
+    assert r.status_code == 200
+    assert r.json() == {"model": "yolov8n.pt", "labels": ["cat", "person"]}
+
+
+def test_labels_sequence_names(client: TestClient, monkeypatch):
+    from app.model_manager import model_manager
+
+    monkeypatch.setattr(
+        model_manager,
+        "load_model",
+        lambda model_id: SimpleNamespace(model=SimpleNamespace(names=("cat", "person"))),
+    )
+
+    r = client.get("/labels?model=yolov8s.pt")
+    assert r.status_code == 200
+    assert r.json() == {"model": "yolov8s.pt", "labels": ["cat", "person"]}
+
+
+def test_labels_error_returns_400(client: TestClient, monkeypatch):
+    from app.model_manager import model_manager
+
+    def raise_error(model_id):
+        raise ValueError("bad model")
+
+    monkeypatch.setattr(model_manager, "load_model", raise_error)
+
+    r = client.get("/labels?model=broken")
+    assert r.status_code == 400
+    assert r.json()["detail"] == "bad model"
+
+
 # ------------------------------------------------------------------
 # 推理端点
 # ------------------------------------------------------------------
@@ -208,6 +250,93 @@ def test_websocket_config_update(client: TestClient, mock_infer):
         assert resp.get("model") == "yolov8s.pt"
 
 
+def test_websocket_config_can_clear_queries_and_question(
+    client: TestClient, image_bytes: bytes, monkeypatch
+):
+    from app.model_manager import model_manager
+
+    calls = []
+
+    def fake_infer(*, model_id: str, image, text_queries=None, question=None, **kwargs):
+        calls.append(
+            {
+                "model_id": model_id,
+                "text_queries": text_queries,
+                "question": question,
+            }
+        )
+        h, w = image.shape[:2]
+        return {
+            "width": w,
+            "height": h,
+            "detections": [],
+            "inference_time": 1.0,
+            "task": "detect",
+            "text_queries": text_queries,
+            "question": question,
+        }
+
+    monkeypatch.setattr(model_manager, "infer", fake_infer)
+
+    with client.websocket_connect("/ws?model=yolov8n.pt&text_queries=cat,dog&question=what") as ws:
+        ws.receive_json()  # ready
+
+        ws.send_bytes(image_bytes)
+        result = ws.receive_json()
+        assert result["type"] == "result"
+        assert calls[-1]["text_queries"] == ["cat", "dog"]
+        assert calls[-1]["question"] == "what"
+
+        ws.send_json({"type": "config", "text_queries": [], "question": None})
+        resp = ws.receive_json()
+        assert resp["type"] == "config_updated"
+
+        ws.send_bytes(image_bytes)
+        result = ws.receive_json()
+        assert result["type"] == "result"
+        assert calls[-1]["text_queries"] is None
+        assert calls[-1]["question"] is None
+
+
+def test_websocket_query_params_preserve_zero_and_false_values(
+    client: TestClient, image_bytes: bytes, monkeypatch
+):
+    from app.model_manager import model_manager
+
+    calls = []
+
+    def fake_infer(*, model_id: str, image, conf=None, iou=None, max_det=None, half=None, **kwargs):
+        calls.append(
+            {
+                "model_id": model_id,
+                "conf": conf,
+                "iou": iou,
+                "max_det": max_det,
+                "half": half,
+            }
+        )
+        h, w = image.shape[:2]
+        return {
+            "width": w,
+            "height": h,
+            "detections": [],
+            "inference_time": 1.0,
+            "task": "detect",
+        }
+
+    monkeypatch.setattr(model_manager, "infer", fake_infer)
+
+    with client.websocket_connect("/ws?model=yolov8n.pt&conf=0&iou=0&max_det=0&half=0") as ws:
+        ws.receive_json()  # ready
+        ws.send_bytes(image_bytes)
+        result = ws.receive_json()
+        assert result["type"] == "result"
+        assert calls[-1]["conf"] == 0.0
+        assert calls[-1]["iou"] == 0.0
+        assert calls[-1]["max_det"] == 0
+        assert calls[-1]["half"] is False
+
+
 # ------------------------------------------------------------------
 # 注册表 / 处理器单元测试
 # ------------------------------------------------------------------
@@ -251,3 +380,36 @@ def test_config_settings():
     assert s.port == 9000
     assert s.origins_list == ["http://a.com", "http://b.com"]
     assert s.max_upload_bytes == 5 * 1024 * 1024
+
+
+@pytest.mark.parametrize("raw", ["1", "true", "yes", "on", True])
+def test_config_skip_warmup_true_values(raw):
+    from app.config import AppSettings
+
+    assert AppSettings(SKIP_WARMUP=raw).skip_warmup is True
+
+
+@pytest.mark.parametrize("raw", ["0", "false", "no", "off", "", False])
+def test_config_skip_warmup_false_values(raw):
+    from app.config import AppSettings
+
+    assert AppSettings(SKIP_WARMUP=raw).skip_warmup is False
+
+
+def test_config_skip_warmup_invalid_value():
+    from app.config import AppSettings
+
+    with pytest.raises(ValueError, match="SKIP_WARMUP must be a boolean value"):
+        AppSettings(SKIP_WARMUP="not-a-bool")
+
+
+def test_parse_bool_string_invalid_value():
+    from app.config import parse_bool_string
+
+    assert parse_bool_string("not-a-bool") is None
+
+
+def test_parse_bool_string_empty_value():
+    from app.config import parse_bool_string
+
+    assert parse_bool_string("") is False

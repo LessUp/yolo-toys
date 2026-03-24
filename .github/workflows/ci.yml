@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
     paths-ignore:
       - '*.md'
       - 'docs/**'
@@ -13,7 +13,7 @@ on:
       - '404.md'
       - '.github/workflows/pages.yml'
   pull_request:
-    branches: [main]
+    branches: [master, main]
     paths-ignore:
       - '*.md'
       - 'docs/**'
