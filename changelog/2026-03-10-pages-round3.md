@@ -1,6 +1,9 @@
-# GitHub Pages 第三轮优化
+---
+date: "2026-03-10"
+title: "GitHub Pages 第三轮优化"
+---
 
-**日期**: 2026-03-10
+# 2026-03-10 GitHub Pages 第三轮优化
 
 ## 变更内容
 

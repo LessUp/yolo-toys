@@ -1,12 +1,13 @@
 ---
-title: "2025-12-19 — 文档对齐与体验一致性修正"
+date: "2025-12-19"
+title: "文档对齐与体验一致性修正"
 ---
 
 # 2025-12-19 文档对齐与体验一致性修正
 
 - 文档与实现对齐：
   - 更新 `docs/README.md`：同步前端当前函数命名与模块划分（如 `initWS/closeWS`、`updateSidebar`），修正 WebSocket 查询参数列表，完善测试覆盖范围说明，并移除当前接口未返回的字段描述。
-  - 更新 `docs/README.md`：在“快速开始/工程工具”补充安装 `requirements-dev.txt`（包含 `pytest` / `pre-commit`）的说明，避免仅安装运行依赖时测试命令失败。
+  - 更新 `docs/README.md`：在"快速开始/工程工具"补充安装 `requirements-dev.txt`（包含 `pytest` / `pre-commit`）的说明，避免仅安装运行依赖时测试命令失败。
 
 - 前端 UI/UX 细节增强：
   - 更新 `frontend/app.js`：自定义模型输入纳入本地设置持久化，并用于模型类别推断与多模态输入项联动显示。

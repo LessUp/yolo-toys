@@ -1,8 +1,9 @@
 ---
-title: "2026-03-09 — GitHub Pages & 文档优化"
+date: "2026-03-09"
+title: "GitHub Pages & 文档优化"
 ---
 
-# 2026-03-09 — GitHub Pages & 文档优化
+# 2026-03-09 GitHub Pages & 文档优化
 
 ## GitHub Pages
 

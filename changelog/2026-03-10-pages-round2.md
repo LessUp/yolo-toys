@@ -1,8 +1,9 @@
 ---
-title: "2026-03-10 — GitHub Pages 第二轮优化"
+date: "2026-03-10"
+title: "GitHub Pages 第二轮优化"
 ---
 
-# 2026-03-10 — GitHub Pages 第二轮优化
+# 2026-03-10 GitHub Pages 第二轮优化
 
 ## 文档同步
 
