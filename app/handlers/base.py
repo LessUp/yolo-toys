@@ -58,11 +58,6 @@ class BaseHandler(ABC):
         return Image.fromarray(image[:, :, ::-1])
 
     @staticmethod
-    def image_hw(image: np.ndarray) -> tuple[int, int]:
-        """返回 (height, width)"""
-        return image.shape[:2]
-
-    @staticmethod
     def make_result(
         image: np.ndarray,
         *,

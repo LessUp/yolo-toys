@@ -1,17 +1,64 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a new feature or enhancement
+title: '[Feature] '
 labels: enhancement
+assignees: ''
 ---
 
-## Problem
-What problem does this feature solve? Who benefits?
+## Problem Statement
 
-## Proposed solution
-Describe the solution you'd like. Include UI/API sketches if applicable.
+<!-- What problem does this feature solve? Who would benefit? -->
 
-## Alternatives considered
-List alternative solutions you've considered.
+**As a** [user/developer],
+**I want** [to do something],
+**So that** [I can achieve some goal].
 
-## Additional context
-Add any other context or screenshots about the feature request here.
+## Proposed Solution
+
+<!-- Describe the solution you'd like to see implemented -->
+
+### API Changes (if applicable)
+
+<!-- Any new endpoints, parameters, or response changes -->
+
+```python
+# Example API usage
+```
+
+### UI Changes (if applicable)
+
+<!-- Describe any UI changes or add mockups -->
+
+## Alternatives Considered
+
+<!-- List any alternative solutions you've considered -->
+
+1. ...
+2. ...
+
+## Use Cases
+
+<!-- Describe specific use cases for this feature -->
+
+1. **Use case 1**: ...
+2. **Use case 2**: ...
+
+## Priority
+
+<!-- How important is this feature? -->
+
+- [ ] Critical — Blocking production use
+- [ ] High — Significant impact on workflow
+- [ ] Medium — Nice to have
+- [ ] Low — Minor enhancement
+
+## Willing to Contribute?
+
+- [ ] Yes, I'd like to submit a PR for this feature
+- [ ] Yes, I can help with testing
+- [ ] No, just suggesting
+
+## Additional Context
+
+<!-- Add any other context, screenshots, or references -->

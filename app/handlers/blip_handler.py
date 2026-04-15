@@ -8,24 +8,12 @@ from typing import Any
 import numpy as np
 
 from app.handlers.base import BaseHandler
+from app.handlers.hf_handler import _require_hf
 
 try:
     import torch
 except ImportError:
     torch = None
-
-_HF_AVAILABLE = False
-try:
-    from transformers import BlipForConditionalGeneration, BlipProcessor
-
-    _HF_AVAILABLE = True
-except ImportError:
-    pass
-
-
-def _require_hf():
-    if not _HF_AVAILABLE:
-        raise RuntimeError("transformers not installed")
 
 
 class BLIPCaptionHandler(BaseHandler):
@@ -33,6 +21,8 @@ class BLIPCaptionHandler(BaseHandler):
 
     def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
+        from transformers import BlipForConditionalGeneration, BlipProcessor
+
         processor = BlipProcessor.from_pretrained(model_id)
         model = BlipForConditionalGeneration.from_pretrained(model_id)
         model = self._model_to_device(model)
@@ -73,7 +63,7 @@ class BLIPVQAHandler(BaseHandler):
 
     def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
-        from transformers import BlipForQuestionAnswering
+        from transformers import BlipForQuestionAnswering, BlipProcessor
 
         processor = BlipProcessor.from_pretrained(model_id)
         model = BlipForQuestionAnswering.from_pretrained(model_id)

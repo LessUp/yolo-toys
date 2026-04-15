@@ -29,6 +29,7 @@ except ImportError:
 
 
 def _require_hf():
+    """Check if HuggingFace transformers is available."""
     if not _HF_AVAILABLE:
         raise RuntimeError("transformers not installed")
 
@@ -141,6 +142,8 @@ class OWLViTHandler(BaseHandler):
             outputs = model(**inputs)
 
         target_sizes = torch.tensor([pil_image.size[::-1]])
+        if self._device != "cpu":
+            target_sizes = target_sizes.to(self._device)
         results = processor.post_process_object_detection(
             outputs, target_sizes=target_sizes, threshold=conf
         )[0]

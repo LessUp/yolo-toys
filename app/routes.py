@@ -56,6 +56,7 @@ async def _read_upload_image(file: UploadFile) -> np.ndarray:
 
 
 def _get_optional_float(value: str | None) -> float | None:
+    """Parse optional float from query param."""
     if value is None or value == "":
         return None
     try:
@@ -65,6 +66,7 @@ def _get_optional_float(value: str | None) -> float | None:
 
 
 def _get_optional_int(value: str | None) -> int | None:
+    """Parse optional int from query param."""
     if value is None or value == "":
         return None
     try:
@@ -73,11 +75,8 @@ def _get_optional_int(value: str | None) -> int | None:
         return None
 
 
-def _get_optional_bool(value: str | None) -> bool | None:
-    return parse_bool_string(value)
-
-
 def _parse_text_queries(value: str | list[str] | None) -> list[str] | None:
+    """Parse text queries from comma-separated string or list."""
     if value is None:
         return None
     if isinstance(value, str):
@@ -248,7 +247,7 @@ def _parse_ws_state(params) -> dict:
     conf = _get_optional_float(params.get("conf"))
     iou = _get_optional_float(params.get("iou"))
     max_det = _get_optional_int(params.get("max_det"))
-    half = _get_optional_bool(params.get("half"))
+    half = parse_bool_string(params.get("half"))
     return {
         "model_id": params.get("model") or settings.model_name,
         "conf": conf if conf is not None else settings.conf_threshold,
