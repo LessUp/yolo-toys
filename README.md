@@ -336,10 +336,21 @@ make run
 
 ## 📚 Documentation
 
-- **[📖 Detailed Docs](docs/README.md)** — Architecture, data flow, implementation details
-- **[🌐 Project Page](https://lessup.github.io/yolo-toys/)** — Online documentation & demo
-- **[📝 Changelog](changelog/)** — Version history & migration guides
-- **[🤝 Contributing](CONTRIBUTING.md)** — Development guidelines & PR workflow
+Complete documentation is now available in both English and Chinese:
+
+| Category | English | 中文 |
+|----------|---------|------|
+| 📖 Quick Start | [Installation](docs/getting-started/installation.md) • [Quick Start](docs/getting-started/quickstart.md) | [安装指南](docs/getting-started/installation.zh-CN.md) • [快速开始](docs/getting-started/quickstart.zh-CN.md) |
+| 🔌 API Reference | [REST API](docs/api/rest-api.md) • [WebSocket](docs/api/websocket.md) | [REST API](docs/api/rest-api.zh-CN.md) • [WebSocket](docs/api/websocket.zh-CN.md) |
+| 🏗️ Architecture | [Overview](docs/architecture/overview.md) • [Handlers](docs/architecture/handlers.md) | [系统概述](docs/architecture/overview.zh-CN.md) • [处理器模式](docs/architecture/handlers.zh-CN.md) |
+| 🐳 Deployment | [Docker](docs/deployment/docker.md) • [Environments](docs/deployment/environments.md) | [Docker部署](docs/deployment/docker.zh-CN.md) • [环境变量](docs/deployment/environments.md) |
+| 📖 Guides | [Adding Models](docs/guides/adding-models.md) | [添加模型](docs/guides/adding-models.zh-CN.md) |
+| 📋 Reference | [Models](docs/reference/models.md) • [FAQ](docs/reference/faq.md) | [模型列表](docs/reference/models.md) • [常见问题](docs/reference/faq.zh-CN.md) |
+
+**Quick Links:**
+- **[🌐 Live Demo](https://lessup.github.io/yolo-toys/)** — Try it online
+- **[📝 Changelog](changelog/CHANGELOG.md)** — Version history
+- **[🤝 Contributing](CONTRIBUTING.md)** — Join the project
 
 ---
 

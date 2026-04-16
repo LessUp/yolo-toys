@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yolo-toys"
-version = "3.0.0"
+version = "3.1.0"
 description = "多模型实时视觉识别系统 - 支持 YOLO、HuggingFace Transformers、多模态模型"
 readme = "README.md"
 license = {text = "MIT"}
