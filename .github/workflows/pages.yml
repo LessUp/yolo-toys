@@ -27,16 +27,13 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 jobs:
   build:
     name: Build Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (sparse — skip large model files)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
@@ -53,7 +50,7 @@ jobs:
             LICENSE
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
@@ -74,4 +71,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
