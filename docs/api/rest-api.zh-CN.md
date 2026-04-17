@@ -37,11 +37,15 @@ GET /health
 **响应：**
 ```json
 {
-  "status": "healthy",
-  "version": "3.0.0",
-  "models_loaded": 2,
+  "status": "ok",
+  "version": "3.1.0",
   "device": "cuda:0",
-  "uptime_seconds": 3600
+  "default_model": "yolov8n.pt",
+  "defaults": {
+    "conf": 0.25,
+    "iou": 0.45,
+    "max_det": 300
+  }
 }
 ```
 
@@ -123,13 +127,13 @@ GET /labels?model={model_id}
 **查询参数：**
 | 名称 | 类型 | 必需 | 描述 |
 |------|------|------|------|
-| `model` | string | 是 | 模型标识符 |
+| `model` | string | 否 | 模型标识符（默认为配置的模型）|
 
 **响应：**
 ```json
 {
-  "labels": ["person", "car", "dog", ...],
-  "count": 80
+  "model": "yolov8n.pt",
+  "labels": ["person", "car", "dog", ...]
 }
 ```
 
@@ -150,9 +154,14 @@ POST /infer
 |------|------|------|--------|------|
 | `file` | File | 是 | - | 图像文件（JPEG、PNG、WEBP）|
 | `model` | string | 否 | `yolov8n.pt` | 模型标识符 |
-| `conf` | float | 否 | 0.25 | 置信度阈值 |
-| `iou` | float | 否 | 0.45 | NMS 的 IoU 阈值 |
-| `max_det` | int | 否 | 300 | 最大检测数 |
+| `conf` | float | 否 | 0.25 | 置信度阈值 (0.0-1.0) |
+| `iou` | float | 否 | 0.45 | NMS 的 IoU 阈值 (0.0-1.0) |
+| `max_det` | int | 否 | 300 | 最大检测数 (1-1000) |
+| `device` | string | 否 | auto | 推理设备 (cpu/cuda/mps) |
+| `imgsz` | int | 否 | 640 | 推理图像尺寸 (32-4096) |
+| `half` | bool | 否 | false | 启用 FP16 半精度 |
+| `text_queries` | string | 否 | - | 开放词汇检测的文本查询（逗号分隔）|
+| `question` | string | 否 | - | VQA 模型的问题（最多 500 字符）|
 
 **响应 (200 OK)：**
 ```json
@@ -204,7 +213,6 @@ POST /caption
 |------|------|------|--------|------|
 | `file` | File | 是 | - | 图像文件 |
 | `model` | string | 否 | `Salesforce/blip-image-captioning-base` | 描述模型 |
-| `max_length` | int | 否 | 50 | 最大描述长度 |
 
 **响应：**
 ```json

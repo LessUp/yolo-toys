@@ -31,32 +31,65 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SKIP_WARMUP: '1'
+
 jobs:
   lint-and-test:
-    name: Lint & Test
-    runs-on: ubuntu-latest
+    name: Lint & Test (Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+        os: [ubuntu-latest]
+        include:
+          - python-version: '3.11'
+            os: windows-latest
+          - python-version: '3.11'
+            os: macos-latest
+
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
+
       - name: Cache pip
         uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-py3.11-pip-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-py3.11-pip-
+            ${{ runner.os }}-py${{ matrix.python-version }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install -U pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
       - name: Ruff lint
         run: ruff check .
+
       - name: Ruff format check
         run: ruff format --check .
-      - name: Run tests
-        env:
-          SKIP_WARMUP: '1'
-        run: python -m pytest
+
+      - name: Run tests with coverage
+        run: python -m pytest --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Run pip-audit
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: requirements.txt requirements-dev.txt

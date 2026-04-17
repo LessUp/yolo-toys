@@ -236,7 +236,7 @@ import concurrent.futures
 
 def process_image(path):
     with open(path, 'rb') as f:
-        return requests.post('http://localhost:8000/infer', 
+        return requests.post('http://localhost:8000/infer',
                            files={'file': f}).json()
 
 # 并发处理 10 张图像

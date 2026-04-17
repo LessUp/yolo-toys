@@ -61,32 +61,32 @@ from app.handlers.base import BaseHandler
 class MyModelHandler(BaseHandler):
     """
     Handler for MyModel inference.
-    
+
     Supports: object detection, classification, etc.
     """
-    
+
     def load(self, model_id: str) -> Tuple[Any, Optional[Any]]:
         """
         Load model and optional processor.
-        
+
         Args:
             model_id: Model identifier (e.g., 'my-model-v1')
-            
+
         Returns:
             Tuple of (model, processor)
         """
         # Example: Load from HuggingFace
         from transformers import AutoProcessor, AutoModel
-        
+
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModel.from_pretrained(model_id)
-        
+
         # Move to configured device
         model = self._model_to_device(model)
         model.eval()
-        
+
         return model, processor
-    
+
     def infer(
         self,
         model: Any,
@@ -96,46 +96,46 @@ class MyModelHandler(BaseHandler):
     ) -> dict:
         """
         Run inference on the image.
-        
+
         Args:
             model: Loaded model
             processor: Optional processor
             image: Input image (BGR format, numpy array)
             **params: Inference parameters
-            
+
         Returns:
             Standardized result dictionary
         """
         start = time.perf_counter()
-        
+
         # Extract parameters
         conf = params.get("conf", 0.25)
-        
+
         # Preprocess
         # Convert BGR (OpenCV) to PIL if needed
         pil_image = self.bgr_to_pil(image)
-        
+
         if processor:
             inputs = processor(images=pil_image, return_tensors="pt")
         else:
             # Custom preprocessing
             inputs = self._preprocess(image)
-        
+
         # Move to device
         if isinstance(inputs, dict):
             inputs = {k: self._to_device(v) for k, v in inputs.items()}
         else:
             inputs = self._to_device(inputs)
-        
+
         # Inference
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # Post-process
         detections = self._parse_outputs(outputs, image.shape[:2], conf)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         # Return standardized format
         return self.make_result(
             image=image,
@@ -144,17 +144,17 @@ class MyModelHandler(BaseHandler):
             inference_time=inference_time,
             model=getattr(model, 'name_or_path', str(model))
         )
-    
+
     def _preprocess(self, image: np.ndarray) -> torch.Tensor:
         """Custom preprocessing if no processor available."""
         # Example: Resize and normalize
         import cv2
-        
+
         resized = cv2.resize(image, (224, 224))
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         tensor = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
         return tensor.unsqueeze(0)
-    
+
     def _parse_outputs(
         self,
         outputs: Any,
@@ -163,30 +163,30 @@ class MyModelHandler(BaseHandler):
     ) -> list:
         """
         Parse model outputs into standardized detection format.
-        
+
         Returns list of dicts with keys:
         - bbox: [x1, y1, x2, y2] (pixel coordinates)
         - score: float (0-1)
         - label: str (class name)
         """
         detections = []
-        
+
         # Example: Parse detection outputs
         # Adjust based on your model's output format
         boxes = outputs.boxes if hasattr(outputs, 'boxes') else outputs[0]
         scores = outputs.scores if hasattr(outputs, 'scores') else outputs[1]
         labels = outputs.labels if hasattr(outputs, 'labels') else outputs[2]
-        
+
         for box, score, label in zip(boxes, scores, labels):
             if float(score) < conf:
                 continue
-            
+
             detections.append({
                 "bbox": [float(b) for b in box],  # [x1, y1, x2, y2]
                 "score": float(score),
                 "label": str(label)
             })
-        
+
         return detections
 ```
 
@@ -318,7 +318,7 @@ _CATEGORY_HANDLER_MAP = {
 MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
     # YOLO models...
     # HuggingFace models...
-    
+
     # Your custom model
     "my-model-v1": {
         "category": ModelCategory.MY_MODEL,
@@ -344,22 +344,22 @@ from app.handlers.my_model_handler import MyModelHandler
 
 class TestMyModelHandler:
     """Tests for MyModelHandler."""
-    
+
     @pytest.fixture
     def handler(self):
         return MyModelHandler(device="cpu")
-    
+
     @pytest.fixture
     def test_image(self):
         """Create a test image."""
         return np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    
+
     def test_load(self, handler):
         """Test model loading."""
         model, processor = handler.load("my-model-v1")
         assert model is not None
         # Add model-specific assertions
-    
+
     def test_infer(self, handler, test_image):
         """Test inference."""
         model, processor = handler.load("my-model-v1")
@@ -367,19 +367,19 @@ class TestMyModelHandler:
             model, processor, test_image,
             conf=0.5
         )
-        
+
         # Verify result structure
         assert "detections" in result
         assert "inference_time" in result
         assert "task" in result
-        
+
         # Verify detections format
         for det in result["detections"]:
             assert "bbox" in det
             assert "score" in det
             assert "label" in det
             assert len(det["bbox"]) == 4
-    
+
     def test_device_handling(self):
         """Test device configuration."""
         handler = MyModelHandler(device="cpu")
@@ -450,11 +450,11 @@ Models are automatically cached by ModelManager. First load may be slow.
 def load(self, model_id: str):
     model = load_model(model_id)
     model = self._model_to_device(model)
-    
+
     # Enable FP16 on CUDA
     if self.device.startswith("cuda"):
         model = model.half()
-    
+
     return model, processor
 ```
 
@@ -467,10 +467,10 @@ def infer_batch(self, model, processor, images, **params):
     """Batch inference for multiple images."""
     # Stack images
     batch = torch.stack([self._preprocess(img) for img in images])
-    
+
     with torch.no_grad():
         outputs = model(batch)
-    
+
     return [self._parse_single(o) for o in outputs]
 ```
 

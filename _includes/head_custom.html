@@ -1,0 +1,96 @@
+<!-- Custom Head Elements -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Inter & JetBrains Mono Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Custom CSS -->
+<link rel="stylesheet" href="{{ '/assets/css/custom.css' | relative_url }}">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+
+<!-- Theme Toggle Script -->
+<script>
+  // Theme toggle functionality
+  (function() {
+    const themeToggle = () => {
+      const currentTheme = localStorage.getItem('theme') || 'auto';
+      const root = document.documentElement;
+      
+      const applyTheme = (theme) => {
+        if (theme === 'dark') {
+          root.setAttribute('data-bs-theme', 'dark');
+          document.body.classList.add('dark-theme');
+        } else if (theme === 'light') {
+          root.setAttribute('data-bs-theme', 'light');
+          document.body.classList.remove('dark-theme');
+        } else {
+          // Auto - follow system
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (prefersDark) {
+            document.body.classList.add('dark-theme');
+          } else {
+            document.body.classList.remove('dark-theme');
+          }
+        }
+      };
+      
+      applyTheme(currentTheme);
+      
+      // Create theme toggle button
+      const addToggleButton = () => {
+        const siteNav = document.querySelector('.site-nav');
+        if (!siteNav || document.querySelector('.theme-toggle')) return;
+        
+        const themeBtn = document.createElement('button');
+        themeBtn.className = 'theme-toggle';
+        themeBtn.setAttribute('aria-label', '切换主题 / Toggle theme');
+        themeBtn.innerHTML = `
+          <span class="theme-icon-light">☀️</span>
+          <span class="theme-icon-dark">🌙</span>
+        `;
+        themeBtn.onclick = () => {
+          const current = localStorage.getItem('theme') || 'auto';
+          const next = current === 'light' ? 'dark' : (current === 'dark' ? 'auto' : 'light');
+          localStorage.setItem('theme', next);
+          applyTheme(next);
+        };
+        
+        siteNav.appendChild(themeBtn);
+      };
+      
+      // Language toggle
+      const addLangToggle = () => {
+        if (document.querySelector('.lang-toggle')) return;
+        
+        const langNav = document.createElement('div');
+        langNav.className = 'lang-nav';
+        langNav.innerHTML = `
+          <a href="{{ site.baseurl }}/" class="lang-link {% if page.lang != 'en' %}active{% endif %}">中文</a>
+          <span class="lang-separator">/</span>
+          <a href="{{ site.baseurl }}/en/" class="lang-link {% if page.lang == 'en' %}active{% endif %}">EN</a>
+        `;
+        
+        const auxNav = document.querySelector('.aux-nav');
+        if (auxNav) {
+          auxNav.insertBefore(langNav, auxNav.firstChild);
+        }
+      };
+      
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          addToggleButton();
+          addLangToggle();
+        });
+      } else {
+        addToggleButton();
+        addLangToggle();
+      }
+    };
+    
+    themeToggle();
+  })();
+</script>

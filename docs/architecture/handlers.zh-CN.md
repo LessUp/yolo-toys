@@ -36,25 +36,25 @@ import numpy as np
 
 class BaseHandler(ABC):
     """所有模型处理器的抽象基类。"""
-    
+
     def __init__(self, device: str = "cpu"):
         self.device = device
-    
+
     @abstractmethod
     def load(self, model_id: str) -> Tuple[Any, Optional[Any]]:
         """
         加载模型和可选处理器。
-        
+
         参数:
             model_id: 模型的唯一标识符
-            
+
         返回:
             (model, processor) 元组
             - model: 已加载准备推理的模型
             - processor: 可选预处理器（可以为 None）
         """
         pass
-    
+
     @abstractmethod
     def infer(
         self,
@@ -65,18 +65,18 @@ class BaseHandler(ABC):
     ) -> dict:
         """
         在图像上运行推理。
-        
+
         参数:
             model: load() 加载的模型
             processor: load() 的可选处理器
             image: 输入图像（BGR 格式的 numpy 数组）
             **params: 推理参数（conf、iou、max_det 等）
-            
+
         返回:
             标准化的检测结果字典
         """
         pass
-    
+
     def make_result(
         self,
         image: np.ndarray,
@@ -88,7 +88,7 @@ class BaseHandler(ABC):
     ) -> dict:
         """
         创建标准化的结果字典。
-        
+
         这是一个模板方法 - 子类可以覆盖但通常不需要。
         """
         return {
@@ -100,19 +100,19 @@ class BaseHandler(ABC):
             "model": model,
             **kwargs
         }
-    
+
     def _model_to_device(self, model: Any) -> Any:
         """将 PyTorch 模型移动到配置的设备。"""
         if hasattr(model, 'to'):
             return model.to(self.device)
         return model
-    
+
     def _to_device(self, tensor: Any) -> Any:
         """将张量移动到配置的设备。"""
         if hasattr(tensor, 'to'):
             return tensor.to(self.device)
         return tensor
-    
+
     @staticmethod
     def bgr_to_pil(image: np.ndarray) -> "PIL.Image":
         """将 OpenCV BGR 图像转换为 PIL RGB。"""
@@ -137,22 +137,22 @@ import time
 
 class YOLOHandler(BaseHandler):
     """YOLOv8 检测、分割和姿态模型的处理器。"""
-    
+
     def load(self, model_id: str) -> tuple:
         """加载 YOLO 模型。"""
         model = YOLO(model_id)
         # YOLO 不使用独立的处理器
         return model, None
-    
+
     def infer(self, model, processor, image, **params):
         """运行 YOLO 推理。"""
         start = time.perf_counter()
-        
+
         # 提取参数（带默认值）
         conf = params.get("conf", 0.25)
         iou = params.get("iou", 0.45)
         max_det = params.get("max_det", 300)
-        
+
         # 运行推理
         results = model(
             image,
@@ -161,12 +161,12 @@ class YOLOHandler(BaseHandler):
             max_det=max_det,
             verbose=False
         )[0]
-        
+
         # 根据任务类型解析结果
         detections = self._parse_results(results)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -174,11 +174,11 @@ class YOLOHandler(BaseHandler):
             inference_time=inference_time,
             model=model.ckpt_path
         )
-    
+
     def _parse_results(self, results) -> list:
         """将 YOLO 结果解析为标准格式。"""
         detections = []
-        
+
         # 检测框
         if results.boxes is not None:
             for box in results.boxes:
@@ -187,19 +187,19 @@ class YOLOHandler(BaseHandler):
                     "score": float(box.conf),
                     "label": results.names[int(box.cls)]
                 }
-                
+
                 # 如有分割掩膜则添加
                 if results.masks is not None:
                     det["polygons"] = self._extract_polygons(results.masks)
-                
+
                 # 如有关键点则添加
                 if results.keypoints is not None:
                     det["keypoints"] = self._extract_keypoints(results.keypoints)
-                
+
                 detections.append(det)
-        
+
         return detections
-    
+
     def _get_task(self, results) -> str:
         """从结果确定任务类型。"""
         if results.keypoints is not None:
@@ -220,7 +220,7 @@ import time
 
 class DETRHandler(BaseHandler):
     """DETR 目标检测模型的处理器。"""
-    
+
     def load(self, model_id: str) -> tuple:
         """加载 DETR 模型和处理器。"""
         processor = DetrImageProcessor.from_pretrained(model_id)
@@ -228,24 +228,24 @@ class DETRHandler(BaseHandler):
         model = self._model_to_device(model)
         model.eval()
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """运行 DETR 推理。"""
         start = time.perf_counter()
-        
+
         conf = params.get("conf", 0.25)
-        
+
         # BGR 转 PIL
         pil_image = self.bgr_to_pil(image)
-        
+
         # 预处理
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = {k: self._to_device(v) for k, v in inputs.items()}
-        
+
         # 推理
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # 后处理
         target_sizes = torch.tensor([pil_image.size[::-1]])
         results = processor.post_process_object_detection(
@@ -253,7 +253,7 @@ class DETRHandler(BaseHandler):
             threshold=conf,
             target_sizes=target_sizes
         )[0]
-        
+
         # 格式化检测
         detections = []
         for score, label, box in zip(
@@ -266,9 +266,9 @@ class DETRHandler(BaseHandler):
                 "score": float(score),
                 "label": model.config.id2label[int(label)]
             })
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -289,7 +289,7 @@ import time
 
 class BLIPCaptionHandler(BaseHandler):
     """BLIP 图像描述的处理器。"""
-    
+
     def load(self, model_id: str) -> tuple:
         """加载 BLIP 描述模型。"""
         processor = BlipProcessor.from_pretrained(model_id)
@@ -297,32 +297,32 @@ class BLIPCaptionHandler(BaseHandler):
         model = self._model_to_device(model)
         model.eval()
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """生成图像描述。"""
         start = time.perf_counter()
-        
+
         max_length = params.get("max_length", 50)
-        
+
         # BGR 转 PIL
         pil_image = self.bgr_to_pil(image)
-        
+
         # 预处理
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = {k: self._to_device(v) for k, v in inputs.items()}
-        
+
         # 生成
         with torch.no_grad():
             output_ids = model.generate(
                 **inputs,
                 max_length=max_length
             )
-        
+
         # 解码
         caption = processor.decode(output_ids[0], skip_special_tokens=True)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return {
             "caption": caption,
             "inference_time": inference_time,
@@ -381,14 +381,14 @@ MODEL_REGISTRY = {
         "name": "YOLOv8 Small",
         "description": "速度与精度平衡"
     },
-    
+
     # DETR
     "facebook/detr-resnet-50": {
         "category": ModelCategory.HF_DETR,
         "name": "DETR ResNet-50",
         "description": "端到端目标检测"
     },
-    
+
     # BLIP
     "Salesforce/blip-image-captioning-base": {
         "category": ModelCategory.HF_BLIP_CAPTION,
@@ -411,43 +411,43 @@ import time
 
 class MyModelHandler(BaseHandler):
     """MyModel 的处理器。"""
-    
+
     def load(self, model_id: str) -> tuple:
         """加载模型和处理器。"""
         # 你的加载逻辑
         model = load_my_model(model_id)
         processor = load_my_processor(model_id) if needed else None
-        
+
         if hasattr(model, 'to'):
             model = model.to(self.device)
-        
+
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """运行推理。"""
         start = time.perf_counter()
-        
+
         # 预处理
         if processor:
             inputs = processor(image)
         else:
             inputs = self._preprocess(image)
-        
+
         # 移动到设备
         if isinstance(inputs, dict):
             inputs = {k: self._to_device(v) for k, v in inputs.items()}
         else:
             inputs = self._to_device(inputs)
-        
+
         # 推理
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # 后处理和格式化
         detections = self._parse_outputs(outputs, params)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -489,12 +489,12 @@ MODEL_REGISTRY["my-model-id"] = {
 def test_my_model_handler():
     handler = MyModelHandler(device="cpu")
     model, processor = handler.load("my-model-id")
-    
+
     # 创建测试图像
     image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    
+
     result = handler.infer(model, processor, image, conf=0.5)
-    
+
     assert "detections" in result
     assert "inference_time" in result
 ```

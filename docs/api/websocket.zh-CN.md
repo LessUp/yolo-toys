@@ -33,6 +33,11 @@ ws://{host}/ws?model={model_id}&conf={confidence}&iou={iou}&max_det={max_detecti
 | `conf` | float | 0.25 | 置信度阈值 (0.0 - 1.0) |
 | `iou` | float | 0.45 | NMS 的 IoU 阈值 |
 | `max_det` | int | 300 | 每帧最大检测数 |
+| `device` | string | auto | 推理设备 (cpu/cuda/mps) |
+| `imgsz` | int | 640 | 推理图像尺寸 |
+| `half` | bool | false | 启用 FP16 半精度 |
+| `text_queries` | string | - | 开放词汇检测的文本查询（逗号分隔）|
+| `question` | string | - | VQA 模型的问题 |
 
 ### 连接示例
 
@@ -80,14 +85,32 @@ ws.send(JSON.stringify({
 | 字段 | 类型 | 描述 |
 |------|------|------|
 | `type` | string | 必须是 `"config"` |
-| `conf` | float | 新置信度阈值 |
-| `iou` | float | 新 IoU 阈值 |
+| `conf` | float | 新置信度阈值 (0.0-1.0) |
+| `iou` | float | 新 IoU 阈值 (0.0-1.0) |
 | `max_det` | int | 新最大检测数限制 |
 | `model` | string |（可选）切换到不同模型 |
+| `device` | string |（可选）更改推理设备 |
+| `imgsz` | int |（可选）更改推理图像尺寸 |
+| `half` | bool |（可选）启用/禁用 FP16 |
+| `text_queries` | string/array |（可选）开放词汇检测的文本查询 |
+| `question` | string |（可选）VQA 模型的问题 |
 
 ---
 
 ## 📥 服务器 → 客户端消息
+
+### 就绪消息
+
+WebSocket 连接建立后立即发送：
+
+```json
+{
+  "type": "ready",
+  "message": "connected",
+  "model": "yolov8n.pt",
+  "device": "cuda:0"
+}
+```
 
 ### 检测结果
 
@@ -117,31 +140,23 @@ ws.send(JSON.stringify({
 ```json
 {
   "type": "error",
-  "detail": "Model inference failed",
-  "code": "INFERENCE_ERROR"
+  "detail": "Model inference failed"
 }
 ```
 
-**错误码：**
-
-| 代码 | 描述 |
+**常见错误消息：**
+| 详情 | 描述 |
 |------|------|
-| `INVALID_IMAGE` | 图像解码失败 |
-| `INFERENCE_ERROR` | 模型处理错误 |
-| `MODEL_NOT_FOUND` | 请求的模型不可用 |
-| `RATE_LIMITED` | 并发请求过多 |
+| `file too large` | 图像超出 MAX_UPLOAD_MB 限制 |
+| `failed to decode image` | 无效图像格式或损坏数据 |
+| `Unknown model category for ...` | 模型 ID 无法识别 |
 
 ### 配置确认
 
 ```json
 {
-  "type": "config_ack",
-  "config": {
-    "conf": 0.5,
-    "iou": 0.4,
-    "max_det": 100,
-    "model": "yolov8s.pt"
-  }
+  "type": "config_updated",
+  "model": "yolov8s.pt"
 }
 ```
 
@@ -186,6 +201,9 @@ class DetectionStream {
 
   handleMessage(message) {
     switch (message.type) {
+      case 'ready':
+        console.log('已连接, 模型:', message.model, '设备:', message.device);
+        break;
       case 'result':
         this.onDetection?.(message.data);
         this.updateFps();
@@ -193,8 +211,8 @@ class DetectionStream {
       case 'error':
         console.error('服务器错误:', message.detail);
         break;
-      case 'config_ack':
-        console.log('配置已更新:', message.config);
+      case 'config_updated':
+        console.log('配置已更新, 模型:', message.model);
         break;
     }
   }
@@ -257,11 +275,11 @@ function sendVideoFrame() {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0);
-  
+
   canvas.toBlob((blob) => {
     stream.sendFrame(blob);
   }, 'image/jpeg', 0.85);
-  
+
   requestAnimationFrame(sendVideoFrame);
 }
 ```
@@ -309,7 +327,7 @@ function onVideoFrame() {
 对于多个摄像头，创建单独的 WebSocket 连接：
 
 ```javascript
-const streams = cameras.map(cam => 
+const streams = cameras.map(cam =>
   new DetectionStream(`ws://localhost:8000/ws?model=${cam.model}`)
 );
 ```

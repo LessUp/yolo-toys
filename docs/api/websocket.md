@@ -33,6 +33,11 @@ ws://{host}/ws?model={model_id}&conf={confidence}&iou={iou}&max_det={max_detecti
 | `conf` | float | 0.25 | Confidence threshold (0.0 - 1.0) |
 | `iou` | float | 0.45 | IoU threshold for NMS |
 | `max_det` | int | 300 | Maximum detections per frame |
+| `device` | string | auto | Inference device (cpu/cuda/mps) |
+| `imgsz` | int | 640 | Inference image size |
+| `half` | bool | false | Enable FP16 half-precision |
+| `text_queries` | string | - | Text queries for open-vocabulary detection (comma-separated) |
+| `question` | string | - | Question for VQA models |
 
 ### Example Connection
 
@@ -80,14 +85,32 @@ ws.send(JSON.stringify({
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | string | Must be `"config"` |
-| `conf` | float | New confidence threshold |
-| `iou` | float | New IoU threshold |
+| `conf` | float | New confidence threshold (0.0-1.0) |
+| `iou` | float | New IoU threshold (0.0-1.0) |
 | `max_det` | int | New max detections limit |
 | `model` | string | (Optional) Switch to different model |
+| `device` | string | (Optional) Change inference device |
+| `imgsz` | int | (Optional) Change inference image size |
+| `half` | bool | (Optional) Enable/disable FP16 |
+| `text_queries` | string/array | (Optional) Text queries for open-vocabulary detection |
+| `question` | string | (Optional) Question for VQA models |
 
 ---
 
 ## 📥 Server → Client Messages
+
+### Ready Message
+
+Sent immediately after WebSocket connection is established:
+
+```json
+{
+  "type": "ready",
+  "message": "connected",
+  "model": "yolov8n.pt",
+  "device": "cuda:0"
+}
+```
 
 ### Detection Result
 
@@ -117,31 +140,23 @@ ws.send(JSON.stringify({
 ```json
 {
   "type": "error",
-  "detail": "Model inference failed",
-  "code": "INFERENCE_ERROR"
+  "detail": "Model inference failed"
 }
 ```
 
-**Error Codes:**
-
-| Code | Description |
-|------|-------------|
-| `INVALID_IMAGE` | Image decoding failed |
-| `INFERENCE_ERROR` | Model processing error |
-| `MODEL_NOT_FOUND` | Requested model not available |
-| `RATE_LIMITED` | Too many concurrent requests |
+**Common Error Messages:**
+| Detail | Description |
+|--------|-------------|
+| `file too large` | Image exceeds MAX_UPLOAD_MB limit |
+| `failed to decode image` | Invalid image format or corrupted data |
+| `Unknown model category for ...` | Model ID not recognized |
 
 ### Config Acknowledgment
 
 ```json
 {
-  "type": "config_ack",
-  "config": {
-    "conf": 0.5,
-    "iou": 0.4,
-    "max_det": 100,
-    "model": "yolov8s.pt"
-  }
+  "type": "config_updated",
+  "model": "yolov8s.pt"
 }
 ```
 
@@ -186,6 +201,9 @@ class DetectionStream {
 
   handleMessage(message) {
     switch (message.type) {
+      case 'ready':
+        console.log('Connected, model:', message.model, 'device:', message.device);
+        break;
       case 'result':
         this.onDetection?.(message.data);
         this.updateFps();
@@ -193,8 +211,8 @@ class DetectionStream {
       case 'error':
         console.error('Server error:', message.detail);
         break;
-      case 'config_ack':
-        console.log('Config updated:', message.config);
+      case 'config_updated':
+        console.log('Config updated, model:', message.model);
         break;
     }
   }
@@ -257,11 +275,11 @@ function sendVideoFrame() {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0);
-  
+
   canvas.toBlob((blob) => {
     stream.sendFrame(blob);
   }, 'image/jpeg', 0.85);
-  
+
   requestAnimationFrame(sendVideoFrame);
 }
 ```
@@ -309,7 +327,7 @@ function onVideoFrame() {
 For multiple cameras, create separate WebSocket connections:
 
 ```javascript
-const streams = cameras.map(cam => 
+const streams = cameras.map(cam =>
   new DetectionStream(`ws://localhost:8000/ws?model=${cam.model}`)
 );
 ```

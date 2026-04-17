@@ -2,11 +2,13 @@
 HuggingFace Transformers 模型处理器 - DETR / OWL-ViT / Grounding DINO
 """
 
+import logging
 import time
 from typing import Any
 
 import numpy as np
 
+from app.config import get_settings
 from app.handlers.base import BaseHandler
 
 try:
@@ -26,6 +28,9 @@ try:
     _HF_AVAILABLE = True
 except ImportError:
     pass
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 def _require_hf():
@@ -70,8 +75,12 @@ class DETRHandler(BaseHandler):
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = self._to_device(inputs)
 
-        with torch.no_grad():
-            outputs = model(**inputs)
+        try:
+            with torch.no_grad():
+                outputs = model(**inputs)
+        except Exception as e:
+            logger.error("DETR 推理失败: %s", e)
+            raise
 
         target_sizes = torch.tensor([pil_image.size[::-1]])
         if self._device != "cpu":
@@ -138,8 +147,12 @@ class OWLViTHandler(BaseHandler):
         inputs = processor(text=queries, images=pil_image, return_tensors="pt")
         inputs = self._to_device(inputs)
 
-        with torch.no_grad():
-            outputs = model(**inputs)
+        try:
+            with torch.no_grad():
+                outputs = model(**inputs)
+        except Exception as e:
+            logger.error("OWL-ViT 推理失败: %s", e)
+            raise
 
         target_sizes = torch.tensor([pil_image.size[::-1]])
         if self._device != "cpu":
@@ -220,8 +233,12 @@ class GroundingDINOHandler(BaseHandler):
 
         inputs = self._to_device(inputs)
 
-        with torch.no_grad():
-            outputs = model(**inputs)
+        try:
+            with torch.no_grad():
+                outputs = model(**inputs)
+        except Exception as e:
+            logger.error("GroundingDINO 推理失败: %s", e)
+            raise
 
         if not hasattr(processor, "post_process_grounded_object_detection"):
             raise RuntimeError("transformers 版本过低，缺少 GroundingDINO 后处理方法")
@@ -230,7 +247,7 @@ class GroundingDINOHandler(BaseHandler):
             outputs=outputs,
             input_ids=inputs.get("input_ids"),
             threshold=float(conf),
-            text_threshold=0.25,
+            text_threshold=settings.grounding_text_threshold,
             target_sizes=[pil_image.size[::-1]],
             text_labels=[labels],
         )
@@ -248,7 +265,7 @@ class GroundingDINOHandler(BaseHandler):
             raw_label = det_labels[i] if i < len(det_labels) else ""
             label = (
                 ", ".join(str(x) for x in raw_label)
-                if isinstance(raw_label, (list, tuple))
+                if isinstance(raw_label, list | tuple)
                 else str(raw_label)
             )
             dets.append(

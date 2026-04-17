@@ -1,0 +1,93 @@
+#!/bin/bash
+# Development script for YOLO-Toys
+
+set -e
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+show_help() {
+    cat << EOF
+YOLO-Toys Development Helper
+
+Usage: ./scripts/dev.sh [command]
+
+Commands:
+    setup       Setup development environment
+    run         Run development server
+    test        Run tests
+    lint        Run linting
+    format      Format code
+    docker      Build and run Docker container
+    clean       Clean cache and temporary files
+    help        Show this help
+
+EOF
+}
+
+setup() {
+    echo "Setting up development environment..."
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -U pip
+    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+    pre-commit install
+    echo "Setup complete!"
+}
+
+run_dev() {
+    echo "Starting development server..."
+    source .venv/bin/activate 2>/dev/null || true
+    export SKIP_WARMUP=1
+    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+}
+
+run_tests() {
+    echo "Running tests..."
+    source .venv/bin/activate 2>/dev/null || true
+    export SKIP_WARMUP=1
+    pytest tests/ -v "${@:2}"
+}
+
+run_lint() {
+    echo "Running linters..."
+    ruff check app/ tests/
+    ruff format --check app/ tests/
+}
+
+run_format() {
+    echo "Formatting code..."
+    ruff check --fix app/ tests/
+    ruff format app/ tests/
+}
+
+docker_run() {
+    echo "Building and running Docker container..."
+    docker compose up --build
+}
+
+clean() {
+    echo "Cleaning up..."
+    rm -rf .ruff_cache
+    rm -rf .pytest_cache
+    rm -rf htmlcov
+    rm -rf .coverage
+    rm -rf app/__pycache__
+    rm -rf tests/__pycache__
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    echo "Clean complete!"
+}
+
+# Main
+case "${1:-help}" in
+    setup) setup ;;
+    run) run_dev ;;
+    test) run_tests "$@" ;;
+    lint) run_lint ;;
+    format) run_format ;;
+    docker) docker_run ;;
+    clean) clean ;;
+    help|*) show_help ;;
+esac

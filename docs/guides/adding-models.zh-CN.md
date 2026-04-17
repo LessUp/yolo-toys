@@ -61,32 +61,32 @@ from app.handlers.base import BaseHandler
 class MyModelHandler(BaseHandler):
     """
     MyModel 推理的处理器。
-    
+
     支持：目标检测、分类等。
     """
-    
+
     def load(self, model_id: str) -> Tuple[Any, Optional[Any]]:
         """
         加载模型和可选处理器。
-        
+
         参数:
             model_id: 模型标识符（如 'my-model-v1'）
-            
+
         返回:
             (model, processor) 元组
         """
         # 示例：从 HuggingFace 加载
         from transformers import AutoProcessor, AutoModel
-        
+
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModel.from_pretrained(model_id)
-        
+
         # 移动到配置的设备
         model = self._model_to_device(model)
         model.eval()
-        
+
         return model, processor
-    
+
     def infer(
         self,
         model: Any,
@@ -96,46 +96,46 @@ class MyModelHandler(BaseHandler):
     ) -> dict:
         """
         在图像上运行推理。
-        
+
         参数:
             model: 已加载的模型
             processor: 可选处理器
             image: 输入图像（BGR 格式，numpy 数组）
             **params: 推理参数
-            
+
         返回:
             标准化结果字典
         """
         start = time.perf_counter()
-        
+
         # 提取参数
         conf = params.get("conf", 0.25)
-        
+
         # 预处理
         # 如需处理则将 BGR (OpenCV) 转 PIL
         pil_image = self.bgr_to_pil(image)
-        
+
         if processor:
             inputs = processor(images=pil_image, return_tensors="pt")
         else:
             # 自定义预处理
             inputs = self._preprocess(image)
-        
+
         # 移动到设备
         if isinstance(inputs, dict):
             inputs = {k: self._to_device(v) for k, v in inputs.items()}
         else:
             inputs = self._to_device(inputs)
-        
+
         # 推理
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # 后处理
         detections = self._parse_outputs(outputs, image.shape[:2], conf)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         # 返回标准格式
         return self.make_result(
             image=image,
@@ -144,16 +144,16 @@ class MyModelHandler(BaseHandler):
             inference_time=inference_time,
             model=getattr(model, 'name_or_path', str(model))
         )
-    
+
     def _preprocess(self, image: np.ndarray) -> torch.Tensor:
         """如无处理器可用的自定义预处理。"""
         import cv2
-        
+
         resized = cv2.resize(image, (224, 224))
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         tensor = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
         return tensor.unsqueeze(0)
-    
+
     def _parse_outputs(
         self,
         outputs: Any,
@@ -162,30 +162,30 @@ class MyModelHandler(BaseHandler):
     ) -> list:
         """
         将模型输出解析为标准检测格式。
-        
+
         返回包含以下键的字典列表：
         - bbox: [x1, y1, x2, y2]（像素坐标）
         - score: float (0-1)
         - label: str（类别名）
         """
         detections = []
-        
+
         # 示例：解析检测输出
         # 根据模型输出格式调整
         boxes = outputs.boxes if hasattr(outputs, 'boxes') else outputs[0]
         scores = outputs.scores if hasattr(outputs, 'scores') else outputs[1]
         labels = outputs.labels if hasattr(outputs, 'labels') else outputs[2]
-        
+
         for box, score, label in zip(boxes, scores, labels):
             if float(score) < conf:
                 continue
-            
+
             detections.append({
                 "bbox": [float(b) for b in box],  # [x1, y1, x2, y2]
                 "score": float(score),
                 "label": str(label)
             })
-        
+
         return detections
 ```
 
@@ -317,7 +317,7 @@ _CATEGORY_HANDLER_MAP = {
 MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
     # YOLO 模型...
     # HuggingFace 模型...
-    
+
     # 你的自定义模型
     "my-model-v1": {
         "category": ModelCategory.MY_MODEL,
@@ -343,22 +343,22 @@ from app.handlers.my_model_handler import MyModelHandler
 
 class TestMyModelHandler:
     """MyModelHandler 的测试。"""
-    
+
     @pytest.fixture
     def handler(self):
         return MyModelHandler(device="cpu")
-    
+
     @pytest.fixture
     def test_image(self):
         """创建测试图像。"""
         return np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    
+
     def test_load(self, handler):
         """测试模型加载。"""
         model, processor = handler.load("my-model-v1")
         assert model is not None
         # 添加模型特定断言
-    
+
     def test_infer(self, handler, test_image):
         """测试推理。"""
         model, processor = handler.load("my-model-v1")
@@ -366,19 +366,19 @@ class TestMyModelHandler:
             model, processor, test_image,
             conf=0.5
         )
-        
+
         # 验证结果结构
         assert "detections" in result
         assert "inference_time" in result
         assert "task" in result
-        
+
         # 验证检测格式
         for det in result["detections"]:
             assert "bbox" in det
             assert "score" in det
             assert "label" in det
             assert len(det["bbox"]) == 4
-    
+
     def test_device_handling(self):
         """测试设备配置。"""
         handler = MyModelHandler(device="cpu")
@@ -449,11 +449,11 @@ function getModelSpecificParams(modelId) {
 def load(self, model_id: str):
     model = load_model(model_id)
     model = self._model_to_device(model)
-    
+
     # CUDA 上启用 FP16
     if self.device.startswith("cuda"):
         model = model.half()
-    
+
     return model, processor
 ```
 
@@ -466,10 +466,10 @@ def infer_batch(self, model, processor, images, **params):
     """多张图像的批处理推理。"""
     # 堆叠图像
     batch = torch.stack([self._preprocess(img) for img in images])
-    
+
     with torch.no_grad():
         outputs = model(batch)
-    
+
     return [self._parse_single(o) for o in outputs]
 ```
 

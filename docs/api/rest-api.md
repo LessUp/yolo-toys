@@ -37,11 +37,15 @@ GET /health
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "version": "3.0.0",
-  "models_loaded": 2,
+  "status": "ok",
+  "version": "3.1.0",
   "device": "cuda:0",
-  "uptime_seconds": 3600
+  "default_model": "yolov8n.pt",
+  "defaults": {
+    "conf": 0.25,
+    "iou": 0.45,
+    "max_det": 300
+  }
 }
 ```
 
@@ -123,13 +127,13 @@ GET /labels?model={model_id}
 **Query Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `model` | string | Yes | Model identifier |
+| `model` | string | No | Model identifier (defaults to configured model) |
 
 **Response:**
 ```json
 {
-  "labels": ["person", "car", "dog", ...],
-  "count": 80
+  "model": "yolov8n.pt",
+  "labels": ["person", "car", "dog", ...]
 }
 ```
 
@@ -150,9 +154,14 @@ POST /infer
 |------|------|----------|---------|-------------|
 | `file` | File | Yes | - | Image file (JPEG, PNG, WEBP) |
 | `model` | string | No | `yolov8n.pt` | Model identifier |
-| `conf` | float | No | 0.25 | Confidence threshold |
-| `iou` | float | No | 0.45 | IoU threshold for NMS |
-| `max_det` | int | No | 300 | Maximum detections |
+| `conf` | float | No | 0.25 | Confidence threshold (0.0-1.0) |
+| `iou` | float | No | 0.45 | IoU threshold for NMS (0.0-1.0) |
+| `max_det` | int | No | 300 | Maximum detections (1-1000) |
+| `device` | string | No | auto | Inference device (cpu/cuda/mps) |
+| `imgsz` | int | No | 640 | Inference image size (32-4096) |
+| `half` | bool | No | false | Enable FP16 half-precision |
+| `text_queries` | string | No | - | Text queries for open-vocabulary detection (comma-separated) |
+| `question` | string | No | - | Question for VQA models (max 500 chars) |
 
 **Response (200 OK):**
 ```json
@@ -204,7 +213,6 @@ POST /caption
 |------|------|----------|---------|-------------|
 | `file` | File | Yes | - | Image file |
 | `model` | string | No | `Salesforce/blip-image-captioning-base` | Caption model |
-| `max_length` | int | No | 50 | Max caption length |
 
 **Response:**
 ```json

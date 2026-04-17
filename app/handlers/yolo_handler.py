@@ -2,12 +2,15 @@
 YOLO 模型处理器 - 检测 / 分割 / 姿态估计
 """
 
+import logging
 import time
 from typing import Any
 
 import numpy as np
 
 from app.handlers.base import BaseHandler
+
+logger = logging.getLogger(__name__)
 
 
 class YOLOHandler(BaseHandler):
@@ -50,7 +53,11 @@ class YOLOHandler(BaseHandler):
         if half and dev.startswith("cuda"):
             kwargs["half"] = True
 
-        results = model(image, **kwargs)
+        try:
+            results = model(image, **kwargs)
+        except Exception as e:
+            logger.error("YOLO 推理失败: %s", e)
+            raise
         elapsed = (time.time() - t0) * 1000.0
 
         r = results[0]
@@ -106,8 +113,8 @@ class YOLOHandler(BaseHandler):
                         polys = masks_xy[i]
                         if polys is not None:
                             item["polygons"] = [[float(v) for v in polys.reshape(-1)]]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("解析分割多边形失败: %s", e)
 
             # 关键点
             if task == "pose" and getattr(r, "keypoints", None) is not None:
@@ -117,8 +124,8 @@ class YOLOHandler(BaseHandler):
                         kps = kps_xy[i]
                         if kps is not None:
                             item["keypoints"] = [[float(x), float(y)] for x, y in kps.tolist()]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("解析关键点失败: %s", e)
 
             dets.append(item)
 

@@ -2,13 +2,23 @@ import io
 import os
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+# 使用 conftest.py 中的共享 fixtures
+# client, image_bytes, mock_infer 等 fixtures 从 conftest.py 导入
+
+
+# ------------------------------------------------------------------
+# 本地 fixtures (特定于本文件的测试数据)
+# ------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def client():
+    """创建 FastAPI 测试客户端（模块级别，只初始化一次）"""
     os.environ.setdefault("SKIP_WARMUP", "1")
     from app.main import app
 
@@ -18,6 +28,7 @@ def client():
 
 @pytest.fixture()
 def image_bytes() -> bytes:
+    """创建测试用的 PNG 图像字节"""
     img = Image.new("RGB", (32, 32), (255, 0, 0))
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -413,3 +424,299 @@ def test_parse_bool_string_empty_value():
     from app.config import parse_bool_string
 
     assert parse_bool_string("") is False
+
+
+# ------------------------------------------------------------------
+# 参数范围验证测试
+# ------------------------------------------------------------------
+
+
+def test_infer_conf_out_of_range_high(client: TestClient, image_bytes: bytes):
+    """测试 conf 参数超出上限"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?conf=1.5", files=files)
+    assert r.status_code == 422  # Validation error
+
+
+def test_infer_conf_out_of_range_low(client: TestClient, image_bytes: bytes):
+    """测试 conf 参数低于下限"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?conf=-0.1", files=files)
+    assert r.status_code == 422
+
+
+def test_infer_iou_out_of_range(client: TestClient, image_bytes: bytes):
+    """测试 iou 参数超出范围"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?iou=2.0", files=files)
+    assert r.status_code == 422
+
+
+def test_infer_max_det_out_of_range(client: TestClient, image_bytes: bytes):
+    """测试 max_det 参数超出范围"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?max_det=2000", files=files)  # max is 1000
+    assert r.status_code == 422
+
+
+def test_infer_max_det_zero(client: TestClient, image_bytes: bytes):
+    """测试 max_det 参数为零"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?max_det=0", files=files)  # must be > 0
+    assert r.status_code == 422
+
+
+def test_infer_imgsz_out_of_range(client: TestClient, image_bytes: bytes):
+    """测试 imgsz 参数超出范围"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?imgsz=8192", files=files)  # max is 4096
+    assert r.status_code == 422
+
+
+def test_infer_imgsz_too_small(client: TestClient, image_bytes: bytes):
+    """测试 imgsz 参数过小"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?imgsz=16", files=files)  # min is 32
+    assert r.status_code == 422
+
+
+def test_infer_valid_boundary_values(client: TestClient, image_bytes: bytes, mock_infer):
+    """测试边界值应该被接受"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    # 测试边界值
+    r2 = client.post("/infer?conf=0.0", files=files)
+    assert r2.status_code == 200
+
+
+# ------------------------------------------------------------------
+# 模型 ID 安全验证测试
+# ------------------------------------------------------------------
+
+
+def test_model_id_path_traversal_attack(client: TestClient, image_bytes: bytes):
+    """测试模型 ID 路径遍历攻击"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    # 尝试路径遍历
+    r = client.post("/infer?model=../etc/passwd", files=files)
+    assert r.status_code == 400
+
+
+def test_model_id_parent_directory_attack(client: TestClient, image_bytes: bytes):
+    """测试模型 ID 包含父目录引用"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?model=..\\windows\\system32", files=files)
+    assert r.status_code == 400
+
+
+def test_model_id_slash_in_name(client: TestClient, image_bytes: bytes):
+    """测试模型 ID 包含斜杠"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    r = client.post("/infer?model=some/path/model.pt", files=files)
+    assert r.status_code == 400
+
+
+def test_model_info_path_traversal(client: TestClient):
+    """测试模型信息端点的路径遍历"""
+    r = client.get("/models/../etc/passwd")
+    # 应该返回 404 (路由不匹配) 或 400 (验证错误)，不应暴露文件系统
+    assert r.status_code in [400, 404]
+
+
+# ------------------------------------------------------------------
+# URL 编码路径遍历测试
+# ------------------------------------------------------------------
+
+
+def test_model_id_url_encoded_path_traversal(client: TestClient, image_bytes: bytes):
+    """测试模型 ID URL 编码路径遍历攻击"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    # %2e%2e%2f 是 ../ 的 URL 编码
+    r = client.post("/infer?model=%2e%2e%2fetc%2fpasswd", files=files)
+    assert r.status_code == 400
+
+
+def test_model_id_double_url_encoded(client: TestClient, image_bytes: bytes):
+    """测试双重 URL 编码攻击"""
+    files = {"file": ("test.png", image_bytes, "image/png")}
+    # %252e%252e%252f 是 ../ 的双重 URL 编码
+    r = client.post("/infer?model=%252e%252e%252fetc%252fpasswd", files=files)
+    # 应该被验证或找不到模型
+    assert r.status_code in [400, 404]
+
+
+# ------------------------------------------------------------------
+# Handler 工具方法测试
+# ------------------------------------------------------------------
+
+
+def test_base_handler_bgr_to_pil():
+    """测试 BGR 到 PIL 转换"""
+    from app.handlers.base import BaseHandler
+
+    # 创建 BGR 图像 (蓝色)
+    bgr_image = np.zeros((100, 100, 3), dtype=np.uint8)
+    bgr_image[:, :, 0] = 255  # B 通道为 255
+
+    pil_image = BaseHandler.bgr_to_pil(bgr_image)
+
+    assert pil_image.size == (100, 100)
+    assert pil_image.mode == "RGB"
+    # BGR 的蓝色转换为 RGB 的红色
+    pixel = pil_image.getpixel((50, 50))
+    assert pixel[0] == 0  # R
+    assert pixel[1] == 0  # G
+    assert pixel[2] == 255  # B
+
+
+def test_base_handler_make_result():
+    """测试结果字典构造"""
+    from app.handlers.base import BaseHandler
+
+    image = np.zeros((480, 640, 3), dtype=np.uint8)
+    detections = [{"bbox": [0, 0, 10, 10], "score": 0.9, "label": "test"}]
+
+    result = BaseHandler.make_result(
+        image, detections=detections, inference_time=15.5, task="detect"
+    )
+
+    assert result["width"] == 640
+    assert result["height"] == 480
+    assert result["inference_time"] == 15.5
+    assert result["task"] == "detect"
+    assert result["detections"] == detections
+
+
+def test_base_handler_make_result_with_extra():
+    """测试结果字典构造（带额外字段）"""
+    from app.handlers.base import BaseHandler
+
+    image = np.zeros((100, 100, 3), dtype=np.uint8)
+
+    result = BaseHandler.make_result(
+        image,
+        inference_time=10.0,
+        task="caption",
+        caption="a test image",
+        extra_field="extra_value",
+    )
+
+    assert result["caption"] == "a test image"
+    assert result["extra_field"] == "extra_value"
+
+
+# ------------------------------------------------------------------
+# 工具函数测试
+# ------------------------------------------------------------------
+
+
+def test_parse_text_queries_string():
+    """测试文本查询解析（字符串）"""
+    from app.routes import _parse_text_queries
+
+    result = _parse_text_queries("cat, dog, bird")
+    assert result == ["cat", "dog", "bird"]
+
+
+def test_parse_text_queries_list():
+    """测试文本查询解析（列表）"""
+    from app.routes import _parse_text_queries
+
+    result = _parse_text_queries(["cat", "dog"])
+    assert result == ["cat", "dog"]
+
+
+def test_parse_text_queries_empty():
+    """测试文本查询解析（空值）"""
+    from app.routes import _parse_text_queries
+
+    assert _parse_text_queries(None) is None
+    assert _parse_text_queries("") is None
+    assert _parse_text_queries("   ") is None
+
+
+def test_get_optional_float():
+    """测试可选浮点数解析"""
+    from app.routes import _get_optional_float
+
+    assert _get_optional_float("3.14") == 3.14
+    assert _get_optional_float("0") == 0.0
+    assert _get_optional_float(None) is None
+    assert _get_optional_float("") is None
+    assert _get_optional_float("invalid") is None
+
+
+def test_get_optional_int():
+    """测试可选整数解析"""
+    from app.routes import _get_optional_int
+
+    assert _get_optional_int("42") == 42
+    assert _get_optional_int("0") == 0
+    assert _get_optional_int(None) is None
+    assert _get_optional_int("") is None
+    assert _get_optional_int("invalid") is None
+
+
+# ------------------------------------------------------------------
+# ModelManager 测试
+# ------------------------------------------------------------------
+
+
+def test_model_manager_device_property():
+    """测试 ModelManager 设备属性"""
+    from app.model_manager import ModelManager
+
+    manager = ModelManager()
+    assert manager.device in ["cpu", "cuda:0", "mps"]
+
+
+def test_model_manager_invalid_model_id_empty():
+    """测试空模型 ID"""
+    from app.model_manager import ModelManager
+
+    manager = ModelManager()
+    with pytest.raises(ValueError, match="non-empty string"):
+        manager.load_model("")
+
+
+def test_model_manager_invalid_model_id_none():
+    """测试 None 模型 ID"""
+    from app.model_manager import ModelManager
+
+    manager = ModelManager()
+    with pytest.raises(ValueError, match="non-empty string"):
+        manager.load_model(None)  # type: ignore
+
+
+# ------------------------------------------------------------------
+# 配置测试
+# ------------------------------------------------------------------
+
+
+def test_config_log_level():
+    """测试 LOG_LEVEL 配置"""
+    from app.config import AppSettings
+
+    s = AppSettings(LOG_LEVEL="DEBUG")
+    assert s.log_level == "DEBUG"
+
+    s2 = AppSettings(LOG_LEVEL="warning")
+    assert s2.log_level == "WARNING"
+
+
+def test_config_log_level_invalid():
+    """测试无效 LOG_LEVEL"""
+    from app.config import AppSettings
+
+    s = AppSettings(LOG_LEVEL="INVALID")
+    assert s.log_level == "INFO"  # 回退到默认
+
+
+def test_config_default_models():
+    """测试默认模型配置"""
+    from app.config import AppSettings
+
+    s = AppSettings()
+    assert s.default_caption_model == "Salesforce/blip-image-captioning-base"
+    assert s.default_vqa_model == "Salesforce/blip-vqa-base"
+    assert s.blip_max_tokens == 50
+    assert s.grounding_text_threshold == 0.25

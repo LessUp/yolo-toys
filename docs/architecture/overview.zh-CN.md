@@ -126,7 +126,7 @@ class BaseHandler(ABC):
     def load(self, model_id: str) -> tuple[Any, Any | None]:
         """加载模型和处理器"""
         pass
-    
+
     @abstractmethod
     def infer(self, model, processor, image, **params) -> dict:
         """运行推理并返回格式化结果"""
@@ -180,7 +180,7 @@ class BaseHandler(ABC):
             "inference_time": kwargs.get("inference_time"),
             "model": kwargs.get("model")
         }
-    
+
     def _to_device(self, tensor):
         """将张量移动到配置的设备"""
         return tensor.to(self.device)
@@ -299,14 +299,14 @@ class ModelManager:
 ```python
 class AppSettings(BaseSettings):
     model_config = {"env_file": ".env"}
-    
+
     # 服务器设置
     port: int = Field(default=8000, alias="PORT")
-    
+
     # 模型设置
     model_name: str = Field(default="yolov8n.pt", alias="MODEL_NAME")
     device: str = Field(default="auto", alias="DEVICE")
-    
+
     # 性能设置
     max_concurrency: int = Field(default=4, alias="MAX_CONCURRENCY")
 ```

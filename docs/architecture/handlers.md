@@ -36,25 +36,25 @@ import numpy as np
 
 class BaseHandler(ABC):
     """Abstract base class for all model handlers."""
-    
+
     def __init__(self, device: str = "cpu"):
         self.device = device
-    
+
     @abstractmethod
     def load(self, model_id: str) -> Tuple[Any, Optional[Any]]:
         """
         Load model and optional processor.
-        
+
         Args:
             model_id: Unique identifier for the model
-            
+
         Returns:
             Tuple of (model, processor)
             - model: The loaded model ready for inference
             - processor: Optional preprocessor (can be None)
         """
         pass
-    
+
     @abstractmethod
     def infer(
         self,
@@ -65,18 +65,18 @@ class BaseHandler(ABC):
     ) -> dict:
         """
         Run inference on the image.
-        
+
         Args:
             model: Loaded model from load()
             processor: Optional processor from load()
             image: Input image as numpy array (BGR format)
             **params: Inference parameters (conf, iou, max_det, etc.)
-            
+
         Returns:
             Dictionary with standardized detection results
         """
         pass
-    
+
     def make_result(
         self,
         image: np.ndarray,
@@ -88,7 +88,7 @@ class BaseHandler(ABC):
     ) -> dict:
         """
         Create standardized result dictionary.
-        
+
         This is a template method - subclasses can override
         but usually don't need to.
         """
@@ -101,19 +101,19 @@ class BaseHandler(ABC):
             "model": model,
             **kwargs
         }
-    
+
     def _model_to_device(self, model: Any) -> Any:
         """Move PyTorch model to configured device."""
         if hasattr(model, 'to'):
             return model.to(self.device)
         return model
-    
+
     def _to_device(self, tensor: Any) -> Any:
         """Move tensor to configured device."""
         if hasattr(tensor, 'to'):
             return tensor.to(self.device)
         return tensor
-    
+
     @staticmethod
     def bgr_to_pil(image: np.ndarray) -> "PIL.Image":
         """Convert OpenCV BGR image to PIL RGB."""
@@ -138,22 +138,22 @@ import time
 
 class YOLOHandler(BaseHandler):
     """Handler for YOLOv8 detection, segmentation, and pose models."""
-    
+
     def load(self, model_id: str) -> tuple:
         """Load YOLO model."""
         model = YOLO(model_id)
         # YOLO doesn't use a separate processor
         return model, None
-    
+
     def infer(self, model, processor, image, **params):
         """Run YOLO inference."""
         start = time.perf_counter()
-        
+
         # Extract parameters with defaults
         conf = params.get("conf", 0.25)
         iou = params.get("iou", 0.45)
         max_det = params.get("max_det", 300)
-        
+
         # Run inference
         results = model(
             image,
@@ -162,12 +162,12 @@ class YOLOHandler(BaseHandler):
             max_det=max_det,
             verbose=False
         )[0]
-        
+
         # Parse results based on task type
         detections = self._parse_results(results)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -175,11 +175,11 @@ class YOLOHandler(BaseHandler):
             inference_time=inference_time,
             model=model.ckpt_path
         )
-    
+
     def _parse_results(self, results) -> list:
         """Parse YOLO results into standardized format."""
         detections = []
-        
+
         # Detection boxes
         if results.boxes is not None:
             for box in results.boxes:
@@ -188,19 +188,19 @@ class YOLOHandler(BaseHandler):
                     "score": float(box.conf),
                     "label": results.names[int(box.cls)]
                 }
-                
+
                 # Add segmentation mask if available
                 if results.masks is not None:
                     det["polygons"] = self._extract_polygons(results.masks)
-                
+
                 # Add keypoints if available
                 if results.keypoints is not None:
                     det["keypoints"] = self._extract_keypoints(results.keypoints)
-                
+
                 detections.append(det)
-        
+
         return detections
-    
+
     def _get_task(self, results) -> str:
         """Determine task type from results."""
         if results.keypoints is not None:
@@ -221,7 +221,7 @@ import time
 
 class DETRHandler(BaseHandler):
     """Handler for DETR object detection models."""
-    
+
     def load(self, model_id: str) -> tuple:
         """Load DETR model and processor."""
         processor = DetrImageProcessor.from_pretrained(model_id)
@@ -229,24 +229,24 @@ class DETRHandler(BaseHandler):
         model = self._model_to_device(model)
         model.eval()
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """Run DETR inference."""
         start = time.perf_counter()
-        
+
         conf = params.get("conf", 0.25)
-        
+
         # Convert BGR to PIL
         pil_image = self.bgr_to_pil(image)
-        
+
         # Preprocess
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = {k: self._to_device(v) for k, v in inputs.items()}
-        
+
         # Inference
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # Post-process
         target_sizes = torch.tensor([pil_image.size[::-1]])
         results = processor.post_process_object_detection(
@@ -254,7 +254,7 @@ class DETRHandler(BaseHandler):
             threshold=conf,
             target_sizes=target_sizes
         )[0]
-        
+
         # Format detections
         detections = []
         for score, label, box in zip(
@@ -267,9 +267,9 @@ class DETRHandler(BaseHandler):
                 "score": float(score),
                 "label": model.config.id2label[int(label)]
             })
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -290,7 +290,7 @@ import time
 
 class BLIPCaptionHandler(BaseHandler):
     """Handler for BLIP image captioning."""
-    
+
     def load(self, model_id: str) -> tuple:
         """Load BLIP caption model."""
         processor = BlipProcessor.from_pretrained(model_id)
@@ -298,32 +298,32 @@ class BLIPCaptionHandler(BaseHandler):
         model = self._model_to_device(model)
         model.eval()
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """Generate image caption."""
         start = time.perf_counter()
-        
+
         max_length = params.get("max_length", 50)
-        
+
         # Convert BGR to PIL
         pil_image = self.bgr_to_pil(image)
-        
+
         # Preprocess
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = {k: self._to_device(v) for k, v in inputs.items()}
-        
+
         # Generate
         with torch.no_grad():
             output_ids = model.generate(
                 **inputs,
                 max_length=max_length
             )
-        
+
         # Decode
         caption = processor.decode(output_ids[0], skip_special_tokens=True)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return {
             "caption": caption,
             "inference_time": inference_time,
@@ -382,14 +382,14 @@ MODEL_REGISTRY = {
         "name": "YOLOv8 Small",
         "description": "Balanced speed and accuracy"
     },
-    
+
     # DETR
     "facebook/detr-resnet-50": {
         "category": ModelCategory.HF_DETR,
         "name": "DETR ResNet-50",
         "description": "End-to-end object detection"
     },
-    
+
     # BLIP
     "Salesforce/blip-image-captioning-base": {
         "category": ModelCategory.HF_BLIP_CAPTION,
@@ -412,43 +412,43 @@ import time
 
 class MyModelHandler(BaseHandler):
     """Handler for MyModel."""
-    
+
     def load(self, model_id: str) -> tuple:
         """Load model and processor."""
         # Your loading logic here
         model = load_my_model(model_id)
         processor = load_my_processor(model_id) if needed else None
-        
+
         if hasattr(model, 'to'):
             model = model.to(self.device)
-        
+
         return model, processor
-    
+
     def infer(self, model, processor, image, **params):
         """Run inference."""
         start = time.perf_counter()
-        
+
         # Preprocess
         if processor:
             inputs = processor(image)
         else:
             inputs = self._preprocess(image)
-        
+
         # Move to device
         if isinstance(inputs, dict):
             inputs = {k: self._to_device(v) for k, v in inputs.items()}
         else:
             inputs = self._to_device(inputs)
-        
+
         # Inference
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # Post-process and format
         detections = self._parse_outputs(outputs, params)
-        
+
         inference_time = (time.perf_counter() - start) * 1000
-        
+
         return self.make_result(
             image=image,
             detections=detections,
@@ -490,12 +490,12 @@ MODEL_REGISTRY["my-model-id"] = {
 def test_my_model_handler():
     handler = MyModelHandler(device="cpu")
     model, processor = handler.load("my-model-id")
-    
+
     # Create test image
     image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    
+
     result = handler.infer(model, processor, image, conf=0.5)
-    
+
     assert "detections" in result
     assert "inference_time" in result
 ```

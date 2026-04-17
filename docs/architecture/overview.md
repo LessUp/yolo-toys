@@ -126,7 +126,7 @@ class BaseHandler(ABC):
     def load(self, model_id: str) -> tuple[Any, Any | None]:
         """Load model and processor"""
         pass
-    
+
     @abstractmethod
     def infer(self, model, processor, image, **params) -> dict:
         """Run inference and return formatted results"""
@@ -180,7 +180,7 @@ class BaseHandler(ABC):
             "inference_time": kwargs.get("inference_time"),
             "model": kwargs.get("model")
         }
-    
+
     def _to_device(self, tensor):
         """Move tensor to configured device"""
         return tensor.to(self.device)
@@ -299,14 +299,14 @@ class ModelManager:
 ```python
 class AppSettings(BaseSettings):
     model_config = {"env_file": ".env"}
-    
+
     # Server settings
     port: int = Field(default=8000, alias="PORT")
-    
+
     # Model settings
     model_name: str = Field(default="yolov8n.pt", alias="MODEL_NAME")
     device: str = Field(default="auto", alias="DEVICE")
-    
+
     # Performance settings
     max_concurrency: int = Field(default=4, alias="MAX_CONCURRENCY")
 ```

@@ -1,14 +1,20 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-pydantic-settings>=2.1.0
-ultralytics>=8.0.0
-opencv-python-headless>=4.8.0
-pillow>=10.0.0
-numpy>=1.24.0
-python-multipart>=0.0.6
-aiofiles>=23.0.0
-torch>=2.1.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic-settings>=2.6.0
+ultralytics>=8.3.0
+opencv-python-headless>=4.9.0
+pillow>=10.4.0
+numpy>=1.26.0
+python-multipart>=0.0.12
+aiofiles>=24.0.0
+torch>=2.3.0
 # HuggingFace Transformers 多模型支持
-transformers>=4.35.0
+transformers>=4.44.0
 # 加速推理
-accelerate>=0.24.0
+accelerate>=1.0.0
+# 缓存工具
+cachetools>=5.5.0
+# Prometheus 指标
+prometheus-client>=0.21.0
+# 文件类型检测
+python-magic>=0.4.27

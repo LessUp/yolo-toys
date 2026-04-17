@@ -1,39 +1,89 @@
+# Site settings
 title: YOLO-Toys
-description: 多模型实时视觉识别系统 — YOLO 检测/分割/姿态 · DETR · OWL-ViT · Grounding DINO · BLIP Caption/VQA · WebSocket 流式推理
-remote_theme: pages-themes/cayman@v0.2.0
+description: 多模型实时视觉识别系统 / Multi-Model Real-Time Vision Platform
+repository: LessUp/yolo-toys
+url: https://lessup.github.io
+baseurl: /yolo-toys
+
+# Language settings
+# Polyglot multi-language support
+languages: ["zh", "en"]
+default_lang: "zh"
+exclude_from_localization: ["assets", "images", "favicon.ico"]
+parallel_localization: true
+
+# Theme - Just The Docs (Most powerful documentation theme)
+remote_theme: just-the-docs/just-the-docs@v0.9.0
+
+# Plugins
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
   - jekyll-sitemap
-repository: LessUp/yolo-toys
-show_downloads: false
+  - jekyll-github-metadata
 
-# SEO & metadata
-url: https://lessup.github.io
-baseurl: /yolo-toys
-lang: zh-CN
-author: LessUp
-logo: /yolo-toys/assets/logo.png
+# Just The Docs Configuration
+# https://just-the-docs.com/docs/configuration/
 
-# Markdown rendering
-markdown: kramdown
-kramdown:
-  input: GFM
-  hard_wrap: false
-  syntax_highlighter: rouge
+# Enable search
+search_enabled: true
+search:
+  heading_level: 3
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
 
-# Default layout for all pages
-defaults:
-  - scope:
-      path: ""
-    values:
-      layout: default
-  - scope:
-      path: "changelog"
-    values:
-      layout: default
+# Enable dark mode toggle
+color_scheme: auto  # Can be: nil (light), dark, auto
 
-# Exclude large / irrelevant files from Jekyll build
+# Aux links for the upper right navigation
+aux_links:
+  "GitHub":
+    - "https://github.com/LessUp/yolo-toys"
+
+# Makes Aux links open in a new tab
+aux_links_new_tab: true
+
+# Sort order for navigation
+# nav_sort: case_insensitive
+
+# Footer content
+# footer_content: "Copyright &copy; 2026 LessUp. Distributed under an MIT license."
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "返回顶部 / Back to top"
+
+# Heading anchor links
+heading_anchors: true
+
+# Callouts (alerts)
+callouts:
+  highlight:
+    color: yellow
+  important:
+    title: 重要 / Important
+    color: blue
+  new:
+    title: 新功能 / New
+    color: green
+  note:
+    title: 注意 / Note
+    color: purple
+  warning:
+    title: 警告 / Warning
+    color: red
+
+# Enable copy code button
+copy_code: true
+
+# Enable last edit date
+timezone: Asia/Shanghai
+
+# Exclude from build
 exclude:
   - "*.pt"
   - "*.onnx"
@@ -62,3 +112,40 @@ exclude:
   - Gemfile
   - Gemfile.lock
   - vendor
+  - release-notes.md
+
+# Markdown rendering
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: true
+
+# Collections for docs organization
+collections:
+  docs:
+    permalink: "/:collection/:path"
+    output: true
+  changelog:
+    permalink: "/:collection/:path"
+    output: true
+
+# Set default layout
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: default
+      nav_order: 10
+  - scope:
+      path: "README.md"
+    values:
+      permalink: "/"
+      layout: home
+  - scope:
+      path: "en"
+    values:
+      lang: en

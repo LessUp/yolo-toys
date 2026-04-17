@@ -2,11 +2,13 @@
 BLIP 多模态模型处理器 - 图像描述 / 视觉问答
 """
 
+import logging
 import time
 from typing import Any
 
 import numpy as np
 
+from app.config import get_settings
 from app.handlers.base import BaseHandler
 from app.handlers.hf_handler import _require_hf
 
@@ -14,6 +16,9 @@ try:
     import torch
 except ImportError:
     torch = None
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 class BLIPCaptionHandler(BaseHandler):
@@ -49,8 +54,12 @@ class BLIPCaptionHandler(BaseHandler):
         inputs = processor(pil_image, return_tensors="pt")
         inputs = self._to_device(inputs)
 
-        with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=50)
+        try:
+            with torch.no_grad():
+                out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
+        except Exception as e:
+            logger.error("BLIP Caption 推理失败: %s", e)
+            raise
 
         caption = processor.decode(out[0], skip_special_tokens=True)
         elapsed = (time.time() - t0) * 1000.0
@@ -92,8 +101,12 @@ class BLIPVQAHandler(BaseHandler):
         inputs = processor(pil_image, q, return_tensors="pt")
         inputs = self._to_device(inputs)
 
-        with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=50)
+        try:
+            with torch.no_grad():
+                out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
+        except Exception as e:
+            logger.error("BLIP VQA 推理失败: %s", e)
+            raise
 
         answer = processor.decode(out[0], skip_special_tokens=True)
         elapsed = (time.time() - t0) * 1000.0

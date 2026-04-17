@@ -29,6 +29,8 @@ class AppSettings(BaseSettings):
 
     # 服务
     port: int = Field(default=8000, alias="PORT")
+    # 日志
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     # 模型
     model_name: str = Field(default="yolov8s.pt", alias="MODEL_NAME")
     conf_threshold: float = Field(default=0.25, alias="CONF_THRESHOLD")
@@ -36,11 +38,34 @@ class AppSettings(BaseSettings):
     max_det: int = Field(default=300, alias="MAX_DET")
     device: str = Field(default="", alias="DEVICE")
     skip_warmup: bool = Field(default=False, alias="SKIP_WARMUP")
+    # BLIP/VQA 默认模型
+    default_caption_model: str = Field(
+        default="Salesforce/blip-image-captioning-base", alias="DEFAULT_CAPTION_MODEL"
+    )
+    default_vqa_model: str = Field(default="Salesforce/blip-vqa-base", alias="DEFAULT_VQA_MODEL")
+    # BLIP 配置
+    blip_max_tokens: int = Field(default=50, alias="BLIP_MAX_TOKENS")
+    # Grounding DINO 配置
+    grounding_text_threshold: float = Field(default=0.25, alias="GROUNDING_TEXT_THRESHOLD")
+    # 预热配置
+    warmup_image_size: int = Field(default=640, alias="WARMUP_IMAGE_SIZE")
+    # GZip 配置
+    gzip_min_size: int = Field(default=1000, alias="GZIP_MIN_SIZE")
     # CORS
     allow_origins: str = Field(default="*", alias="ALLOW_ORIGINS")
     # 限制
     max_upload_mb: int = Field(default=10, alias="MAX_UPLOAD_MB")
     max_concurrency: int = Field(default=4, alias="MAX_CONCURRENCY")
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _validate_log_level(cls, v: Any) -> str:
+        valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if isinstance(v, str):
+            upper = v.strip().upper()
+            if upper in valid_levels:
+                return upper
+        return "INFO"
 
     @field_validator("skip_warmup", mode="before")
     @classmethod

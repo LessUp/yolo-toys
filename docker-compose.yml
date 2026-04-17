@@ -1,36 +1,62 @@
+# Docker Compose - Root Configuration
+# For detailed deployment configs, see deployments/docker/
+
 services:
   app:
-    build: .
-    image: vision-det:latest
-    container_name: vision-det
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile
+      target: runtime
+    image: yolo-toys:latest
+    container_name: yolo-toys
     restart: unless-stopped
+    env_file:
+      - config/.env.example
     environment:
       - PORT=${PORT:-8000}
-      - MODEL_NAME=${MODEL_NAME:-yolov8s.pt}
-      - CONF_THRESHOLD=${CONF_THRESHOLD:-0.25}
-      - IOU_THRESHOLD=${IOU_THRESHOLD:-0.45}
-      - MAX_DET=${MAX_DET:-300}
-      - DEVICE=${DEVICE:-}
-      - SKIP_WARMUP=${SKIP_WARMUP:-}
-      - ALLOW_ORIGINS=${ALLOW_ORIGINS:-*}
-      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-10}
-      - MAX_CONCURRENCY=${MAX_CONCURRENCY:-4}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       - model-cache:/app/.cache
     healthcheck:
-      test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.getenv('PORT','8000'), timeout=2)" ]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-    # volumes:
-    #   - ./:/app:ro
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
+      start_period: 40s
+
+  # Monitoring stack (optional)
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: yolo-toys-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./deployments/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: yolo-toys-grafana
+    restart: unless-stopped
+    volumes:
+      - ./deployments/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    profiles:
+      - monitoring
 
 volumes:
   model-cache:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

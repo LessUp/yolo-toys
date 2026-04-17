@@ -1,0 +1,81 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Cache
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+
+# Documentation
+docs/
+changelog/
+*.md
+_config.yml
+404.md
+
+# GitHub
+.github/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Pre-commit
+.pre-commit-config.yaml
+
+# Specs (not needed in production image)
+specs/
+
+# Tests (not needed in production image)
+tests/
+
+# Frontend source maps (if any)
+frontend/*.map

@@ -317,7 +317,7 @@ function renderModels() {
   if (!modelList || !quickModelSelect) return;
   quickModelSelect.innerHTML = '';
   modelList.innerHTML = '';
-  
+
   // 判断是否应该显示该类别的模型
   const shouldShowCategory = (cat) => {
     if (cat === currentCategory) return true;
@@ -328,7 +328,7 @@ function renderModels() {
     // 精确匹配
     return cat === currentCategory;
   };
-  
+
   Object.entries(modelCategories).forEach(([cat, data]) => {
     const grp = document.createElement('optgroup');
     grp.label = data.name;
@@ -337,7 +337,7 @@ function renderModels() {
       opt.value = m.id; opt.textContent = m.name;
       if (m.id === currentModel) opt.selected = true;
       grp.appendChild(opt);
-      
+
       if (shouldShowCategory(cat)) {
         const item = document.createElement('div');
         item.className = `model-item${m.id === currentModel ? ' selected' : ''}`;
@@ -357,7 +357,7 @@ function renderModels() {
     });
     quickModelSelect.appendChild(grp);
   });
-  
+
   if (!modelList.children.length) {
     modelList.innerHTML = '<div class="empty-hint">此类别暂无可用模型</div>';
   }
@@ -493,9 +493,9 @@ function initWS() {
   const u = buildWsUrl(p);
   ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
   ws.onopen = () => { wsReady = true; showToast('WebSocket 已连接', 'success'); };
-  ws.onmessage = e => { 
-    try { 
-      const d = JSON.parse(e.data); 
+  ws.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
       if (d.type === 'result') handleResult(d.data, performance.now(), p.device);
       else if (d.type === 'error') {
         const now = Date.now();
@@ -504,7 +504,7 @@ function initWS() {
           lastInferErrorToastAt = now;
         }
       }
-    } catch {} 
+    } catch {}
   };
   ws.onclose = () => { wsReady = false; ws = null; if (running) showToast('WebSocket 连接断开', 'error'); };
   ws.onerror = () => { wsReady = false; showToast('WebSocket 连接失败', 'error'); };
@@ -532,16 +532,16 @@ async function runImageInference(file) {
     const data = await res.json();
     handleResult(data, t0, p.device);
     const img = new Image();
-    img.onload = () => { 
-      canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0); 
-      drawDetections(); emptyState.style.display = 'none'; 
+    img.onload = () => {
+      canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0);
+      drawDetections(); emptyState.style.display = 'none';
       if (data.caption) showToast('图像描述已生成', 'success');
       else if (data.answer) showToast('视觉问答已生成', 'success');
       else showToast(`检测到 ${detections.length} 个目标`, 'success');
     };
     img.src = URL.createObjectURL(file);
-  } catch (e) { 
-    statsEl.textContent = '推理失败'; 
+  } catch (e) {
+    statsEl.textContent = '推理失败';
     showToast(`推理失败: ${e.message}`, 'error');
   }
 }
@@ -555,9 +555,9 @@ startBtn?.addEventListener('click', async () => {
     await setupCamera();
     closeWS(); initWS(); running = true; stopBtn.disabled = false; emptyState.style.display = 'none';
     draw(); sendFrame();
-  } catch (e) { 
-    console.error(e); 
-    statsEl.textContent = '启动失败'; 
+  } catch (e) {
+    console.error(e);
+    statsEl.textContent = '启动失败';
     showToast(`启动失败: ${e.message || '未知错误'}`, 'error');
   }
   startBtn.disabled = false; startBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> 开始摄像头';

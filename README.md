@@ -324,7 +324,7 @@ make run
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MODEL_NAME` | `yolov8n.pt` | Default model name |
+| `MODEL_NAME` | `yolov8s.pt` | Default model name |
 | `CONF_THRESHOLD` | `0.25` | Detection confidence threshold |
 | `IOU_THRESHOLD` | `0.45` | NMS IoU threshold |
 | `MAX_DET` | `300` | Maximum detections per frame |

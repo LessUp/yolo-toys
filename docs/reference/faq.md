@@ -219,7 +219,7 @@ MAX_UPLOAD_MB=0
 
 ### Q: Supported image formats?
 
-**A:** JPEG, PNG, and WEBP are supported. 
+**A:** JPEG, PNG, and WEBP are supported.
 
 For best performance:
 - **Photos:** JPEG with 85% quality
@@ -236,7 +236,7 @@ import concurrent.futures
 
 def process_image(path):
     with open(path, 'rb') as f:
-        return requests.post('http://localhost:8000/infer', 
+        return requests.post('http://localhost:8000/infer',
                            files={'file': f}).json()
 
 # Process 10 images concurrently

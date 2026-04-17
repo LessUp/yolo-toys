@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+      target: runtime
+    image: yolo-toys:latest
+    container_name: yolo-toys
+    restart: unless-stopped
+    environment:
+      - PORT=${PORT:-8000}
+      - MODEL_NAME=${MODEL_NAME:-yolov8s.pt}
+      - CONF_THRESHOLD=${CONF_THRESHOLD:-0.25}
+      - IOU_THRESHOLD=${IOU_THRESHOLD:-0.45}
+      - MAX_DET=${MAX_DET:-300}
+      - DEVICE=${DEVICE:-auto}
+      - SKIP_WARMUP=${SKIP_WARMUP:-false}
+      - ALLOW_ORIGINS=${ALLOW_ORIGINS:-*}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-10}
+      - MAX_CONCURRENCY=${MAX_CONCURRENCY:-4}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - model-cache:/app/.cache
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # GPU-enabled service (uncomment to use)
+  # app-gpu:
+  #   build:
+  #     context: ../..
+  #     dockerfile: deployments/docker/Dockerfile.cuda
+  #   image: yolo-toys:cuda
+  #   container_name: yolo-toys-gpu
+  #   restart: unless-stopped
+  #   runtime: nvidia
+  #   environment:
+  #     - PORT=8000
+  #     - DEVICE=cuda:0
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - model-cache:/app/.cache
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+
+volumes:
+  model-cache:
+    driver: local

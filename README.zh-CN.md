@@ -324,7 +324,7 @@ make run
 
 | 变量 | 默认值 | 描述 |
 |------|--------|------|
-| `MODEL_NAME` | `yolov8n.pt` | 默认模型名称 |
+| `MODEL_NAME` | `yolov8s.pt` | 默认模型名称 |
 | `CONF_THRESHOLD` | `0.25` | 检测置信度阈值 |
 | `IOU_THRESHOLD` | `0.45` | NMS IoU 阈值 |
 | `MAX_DET` | `300` | 每帧最大检测数 |
