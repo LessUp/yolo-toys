@@ -1,0 +1,14 @@
+# robots.txt for YOLO-Toys
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://lessup.github.io/yolo-toys/sitemap.xml
+
+# Disallow
+Disallow: /assets/js/vendor/
+Disallow: /*.txt$
+Disallow: /*.yml$
+
+# Crawl delay
+Crawl-delay: 10

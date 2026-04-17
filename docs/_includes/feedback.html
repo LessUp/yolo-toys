@@ -1,0 +1,42 @@
+<!-- Feedback Widget -->
+<div class="feedback-widget" style="margin-top: 3rem; padding: 1.5rem; border-top: 1px solid #e5e7eb;">
+  <h3>💬 此页面是否有帮助？/ Was this page helpful?</h3>
+  <div class="feedback-buttons" style="display: flex; gap: 1rem; margin-top: 1rem;">
+    <button class="feedback-btn" data-vote="helpful" style="padding: 0.5rem 1rem; border: 1px solid #4f46e5; background: transparent; color: #4f46e5; border-radius: 6px; cursor: pointer;">
+      👍 有帮助 / Helpful
+    </button>
+    <button class="feedback-btn" data-vote="not-helpful" style="padding: 0.5rem 1rem; border: 1px solid #6b7280; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer;">
+      👎 没帮助 / Not Helpful
+    </button>
+  </div>
+  <p class="feedback-thanks" style="display: none; color: #22c55e; margin-top: 1rem;">
+    ✓ 感谢您的反馈！/ Thank you for your feedback!
+  </p>
+</div>
+
+<script>
+document.querySelectorAll('.feedback-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const vote = this.dataset.vote;
+    const page = window.location.pathname;
+    
+    // Send to GitHub Issues or analytics
+    console.log(`Feedback on ${page}: ${vote}`);
+    
+    // Show thanks
+    document.querySelector('.feedback-thanks').style.display = 'block';
+    document.querySelector('.feedback-buttons').style.display = 'none';
+    
+    // Optionally open GitHub issue for "not helpful"
+    if (vote === 'not-helpful') {
+      setTimeout(() => {
+        if (confirm('Would you like to open an issue to help us improve this page?\n\n您是否愿意提交 Issue 帮助我们改进此页面？')) {
+          const title = encodeURIComponent(`Documentation feedback: ${document.title}`);
+          const body = encodeURIComponent(`Page: ${window.location.href}\n\nFeedback: This page was not helpful. Please describe what was missing or unclear.`);
+          window.open(`https://github.com/LessUp/yolo-toys/issues/new?title=${title}&body=${body}`, '_blank');
+        }
+      }, 500);
+    }
+  });
+});
+</script>

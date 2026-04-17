@@ -1,0 +1,47 @@
+# Navigation structure for YOLO-Toys
+# This data file organizes the main navigation sections
+
+main:
+  - title: "开始"
+    title_en: "Getting Started"
+    url: /docs/getting-started/
+    children:
+      - title: "安装指南"
+        title_en: "Installation"
+        url: /docs/getting-started/installation.html
+      - title: "快速开始"
+        title_en: "Quick Start"
+        url: /docs/getting-started/quickstart.html
+
+  - title: "API 文档"
+    title_en: "API Reference"
+    url: /docs/api/
+    children:
+      - title: "REST API"
+        title_en: "REST API"
+        url: /docs/api/rest-api.html
+      - title: "WebSocket"
+        title_en: "WebSocket"
+        url: /docs/api/websocket.html
+
+  - title: "架构"
+    title_en: "Architecture"
+    url: /docs/architecture/
+    children:
+      - title: "系统概述"
+        title_en: "System Overview"
+        url: /docs/architecture/overview.html
+      - title: "处理器模式"
+        title_en: "Handler Pattern"
+        url: /docs/architecture/handlers.html
+
+  - title: "部署"
+    title_en: "Deployment"
+    url: /docs/deployment/
+    children:
+      - title: "Docker"
+        title_en: "Docker"
+        url: /docs/deployment/docker.html
+      - title: "环境变量"
+        title_en: "Environment Variables"
+        url: /docs/deployment/environments.html

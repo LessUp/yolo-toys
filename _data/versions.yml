@@ -1,0 +1,27 @@
+# Version information for documentation
+
+current:
+  version: "3.2.0"
+  date: "2026-04-17"
+  codename: """
+
+versions:
+  - version: "3.2.0"
+    date: "2026-04-17"
+    status: "current"
+    docs_url: /docs/
+    
+  - version: "3.1.0"
+    date: "2026-03-10"
+    status: "stable"
+    docs_url: /changelog/v3.1.0.html
+    
+  - version: "3.0.0"
+    date: "2026-02-13"
+    status: "legacy"
+    docs_url: /changelog/v3.0.0.html
+    
+  - version: "2.0.0"
+    date: "2025-11-23"
+    status: "eol"
+    docs_url: /changelog/v2.0.0.html

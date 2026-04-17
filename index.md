@@ -1,72 +1,83 @@
 ---
 layout: default
 title: "YOLO-Toys — 多模型实时视觉识别系统"
-description: "支持 YOLO 检测/分割/姿态 · DETR · OWL-ViT · Grounding DINO · BLIP Caption/VQA · WebSocket 流式推理"
+description: "基于 FastAPI + WebSocket 的实时视频物体识别平台，支持 YOLO、HuggingFace Transformers 和多模态模型"
+nav_order: 1
+nav_exclude: true
 ---
 
-<div align="center">
+<div class="hero-section" markdown="1">
 
-# YOLO-Toys
+# 🎯 YOLO-Toys
 
-**多模型实时视觉识别系统**
+<p class="tagline">
+  <strong>多模型实时视觉识别系统</strong><br>
+  <span style="font-size: 1rem; color: #6b7280;">Multi-Model Real-Time Vision Recognition System</span>
+</p>
 
-[![CI](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml/badge.svg)](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml)
+<div class="badges">
+
+[![CI](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml/badge.svg)](https://github.com/LessUp/yolo-toys/actions/workflows/ci.yml){:target="_blank"}
 [![Pages](https://github.com/LessUp/yolo-toys/actions/workflows/pages.yml/badge.svg)](https://lessup.github.io/yolo-toys/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/LessUp/yolo-toys/blob/main/LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
+![FastAPI 0.115+](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 
-*基于 FastAPI + WebSocket 的实时视频物体识别平台，*
-*支持 YOLO、HuggingFace Transformers 和多模态模型*
+</div>
 
-[快速开始](#快速开始) · [支持的模型](#支持的模型) · [架构设计](#架构设计) · [详细文档](docs/README.md) · [GitHub 仓库](https://github.com/LessUp/yolo-toys)
+<div class="hero-buttons">
+  <a href="{{ site.baseurl }}/docs/getting-started/quickstart.html" class="btn-primary">🚀 快速开始 / Quick Start</a>
+  <a href="{{ site.baseurl }}/docs/" class="btn-secondary">📖 查看文档 / Documentation</a>
+</div>
 
 </div>
 
 ---
 
-## 亮点
+## ✨ 亮点 / Highlights
 
-|  | 特性 | 说明 |
-|:---:|------|------|
-| 🎯 | **多模型动态切换** | YOLO 检测/分割/姿态、DETR、OWL-ViT、Grounding DINO、BLIP |
-| 🔌 | **WebSocket 实时推理** | 低延迟视频流处理，支持自动重连和心跳 |
+<div class="features-grid" markdown="1">
+
+| 🎯 | **多模型动态切换** | 支持 YOLO 检测/分割/姿态、DETR、OWL-ViT、Grounding DINO、BLIP |
+| 🔌 | **WebSocket 实时推理** | 低延迟视频流处理，支持自动重连和心跳机制 |
 | 🤖 | **HuggingFace 集成** | 开放词汇检测、图像描述生成、视觉问答 |
-| 🏗️ | **策略模式架构** | 每种模型类型独立 Handler，扩展零耦合 |
+| 🏗️ | **策略模式架构** | 每种模型类型独立 Handler，零耦合扩展 |
 | 🐳 | **Docker 一键部署** | 多阶段构建，非 root 运行，模型缓存卷 |
-| 🌓 | **现代化 UI** | 深色/浅色主题、Toast 通知、设置自动持久化 |
+| 🧪 | **现代化测试** | pytest + httpx，API/WebSocket/单元测试覆盖率 70%+ |
+
+</div>
 
 ---
 
-## 支持的模型
+## 📊 支持的模型 / Supported Models
 
-### 目标检测
+### 目标检测 / Object Detection
 
-| 模型 | 类型 | 速度 | 精度 | 说明 |
-|------|------|:----:|:----:|------|
-| YOLOv8 n/s/m/l/x | YOLO 检测 | ⚡⚡⚡ ~ ⚡ | ★★ ~ ★★★★★ | Ultralytics 实时目标检测 |
-| YOLOv8 n/s/m-seg | YOLO 分割 | ⚡⚡⚡ ~ ⚡⚡ | ★★ ~ ★★★★ | 实例分割，像素级掩膜 |
-| YOLOv8 n/s/m-pose | YOLO 姿态 | ⚡⚡⚡ ~ ⚡⚡ | ★★ ~ ★★★★ | 人体 17 关键点检测 |
-| DETR ResNet-50/101 | Transformer | ⚡⚡ ~ ⚡ | ★★★★ ~ ★★★★★ | Facebook 端到端 Transformer 检测 |
+| 模型 | 类型 | 推荐场景 |
+|------|------|----------|
+| YOLOv8 n/s/m/l/x | 检测 | ⚡ 实时目标检测，速度优先 |
+| YOLOv8 n/s/m-seg | 分割 | 🎨 实例分割，像素级掩膜 |
+| YOLOv8 n/s/m-pose | 姿态 | 🏃 人体 17 关键点检测 |
+| DETR ResNet-50/101 | Transformer | 🔬 端到端 Transformer 检测 |
 
-### 开放词汇检测
+### 开放词汇检测 / Open Vocabulary Detection
 
 | 模型 | 输入 | 说明 |
 |------|------|------|
 | OWL-ViT | 文本 + 图像 | Google 零样本检测，检测任意文本描述的物体 |
-| Grounding DINO | 文本 + 图像 | IDEA-Research 开放集检测，文本提示定位 |
+| Grounding DINO | 文本 + 图像 | IDEA-Research 开放集检测 |
 
-### 多模态
+### 多模态 / Multimodal
 
 | 模型 | 任务 | 说明 |
 |------|------|------|
-| BLIP Caption (base/large) | 图像描述 | Salesforce 图像描述生成 |
+| BLIP Caption | 图像描述 | Salesforce 图像描述生成 |
 | BLIP VQA | 视觉问答 | 根据图片内容回答自然语言问题 |
 
 ---
 
-## 架构设计
+## 🏗️ 架构设计 / Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -78,38 +89,29 @@ description: "支持 YOLO 检测/分割/姿态 · DETR · OWL-ViT · Grounding D
 └──────────────────────────┬───────────────────────────────────┘
                   REST / WebSocket
 ┌──────────────────────────┴───────────────────────────────────┐
-│                   FastAPI Backend (routes.py)                 │
-│                                                              │
+│                   FastAPI Backend (app/api/)                  │
+│                                                               │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │              ModelManager (model_manager.py)             │ │
-│  │   load_model() → cache    infer() → route to handler    │ │
+│  │        TTL+LRU 缓存 · 内存压力监控 · 自动驱逐           │ │
 │  └────────────────────────────┬────────────────────────────┘ │
-│                               │                              │
+│                               │                               │
 │  ┌────────────────────────────┴────────────────────────────┐ │
-│  │             HandlerRegistry (registry.py)               │ │
-│  │   MODEL_REGISTRY → category → handler class mapping     │ │
+│  │             HandlerRegistry (strategy pattern)          │ │
+│  │    MODEL_REGISTRY → category → handler factory          │ │
 │  └──┬──────────┬──────────┬──────────┬──────────┬──────────┘ │
 │     │          │          │          │          │            │
-│  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐        │
-│  │ YOLO │  │ DETR │  │OWLViT│  │G-DINO│  │ BLIP │        │
-│  └──────┘  └──────┘  └──────┘  └──────┘  └──────┘        │
-│  (BaseHandler 策略模式 — 统一 load() + infer() 接口)       │
+│  ┌──┴──┐  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐         │
+│  │ YOLO │  │ DETR │  │OWLViT│  │G-DINO│  │ BLIP │         │
+│  └──────┘  └──────┘  └──────┘  └──────┘  └──────┘         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**核心设计决策：**
-
-- **策略模式** — 每种模型类型实现 `BaseHandler`，新增模型只需添加 Handler + 注册
-- **Pydantic Settings** — 环境变量统一管理，告别散乱的 `os.getenv`
-- **异步并发控制** — `asyncio.Semaphore` 限制同时推理数
-- **模型缓存** — 首次加载后缓存，避免重复初始化
-- **安全头** — 自动注入 `X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`
-
 ---
 
-## 快速开始
+## 🚀 快速开始 / Quick Start
 
-### 本地运行
+### Python 本地运行 / Local Python
 
 ```bash
 # 克隆仓库
@@ -118,10 +120,8 @@ cd yolo-toys
 
 # 创建虚拟环境
 python -m venv .venv
-# Linux/macOS
-source .venv/bin/activate
-# Windows
-.venv\Scripts\activate
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
 
 # 安装依赖
 pip install -r requirements.txt
@@ -132,110 +132,67 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # 访问 http://localhost:8000
 ```
 
-### Docker Compose
+### Docker Compose / Docker 部署
 
 ```bash
-cp .env.example .env
+# 复制配置
+cp config/.env.example config/.env
+
+# 启动服务
 docker compose up --build -d
-# 停止: docker compose down --remove-orphans
-```
 
-### Makefile
+# 查看日志
+docker compose logs -f
 
-```bash
-make install       # 安装运行依赖
-make dev           # 安装开发依赖 + pre-commit
-make lint          # 代码规范检查 (Ruff)
-make test          # 运行测试 (pytest)
-make run           # 本地开发启动
-make compose-up    # Docker Compose 启动
+# 停止服务
+docker compose down --remove-orphans
 ```
 
 ---
 
-## 技术栈
+## 📚 技术栈 / Tech Stack
 
 | 层级 | 技术 | 用途 |
 |------|------|------|
-| **后端框架** | Python 3.11+, FastAPI | REST API + WebSocket 端点 |
-| **检测模型** | Ultralytics YOLOv8 | 检测 / 分割 / 姿态估计 |
-| **Transformer** | HuggingFace Transformers | DETR / OWL-ViT / Grounding DINO / BLIP |
-| **配置管理** | Pydantic Settings | 环境变量统一读取 |
-| **前端** | HTML + CSS + JavaScript (ES Modules) | Canvas 绘制 + WebSocket 通信 |
-| **容器化** | Docker 多阶段构建 + docker-compose | 一键部署，模型缓存卷 |
-| **代码质量** | Ruff (lint + format) + pre-commit | 统一风格，CI 检查 |
-| **测试** | pytest + httpx | API / WebSocket / 注册表单元测试 |
+| **后端框架** | Python 3.11+, FastAPI | REST API + WebSocket |
+| **检测模型** | Ultralytics YOLOv8 | 检测/分割/姿态估计 |
+| **Transformer** | HuggingFace Transformers | DETR / OWL-ViT / BLIP |
+| **配置管理** | Pydantic Settings | 环境变量统一管理 |
+| **前端** | HTML + CSS + JS (ES Modules) | Canvas 绘制 + WebSocket |
+| **容器化** | Docker 多阶段构建 | 一键部署，模型缓存 |
+| **代码质量** | Ruff + pre-commit | 统一风格，CI 检查 |
+| **监控** | Prometheus + Grafana | 指标收集与可视化 |
 
 ---
 
-## 项目结构
+## 📖 文档导航 / Documentation
 
-```
-yolo-toys/
-├── app/
-│   ├── main.py             # FastAPI 入口 + lifespan 生命周期
-│   ├── config.py           # Pydantic Settings 统一配置
-│   ├── routes.py           # API 路由 (REST + WebSocket)
-│   ├── model_manager.py    # 模型管理器 (缓存 + 路由)
-│   ├── schemas.py          # Pydantic 响应模型
-│   └── handlers/           # 策略模式处理器
-│       ├── base.py         # BaseHandler 抽象基类
-│       ├── registry.py     # 模型注册表 + 处理器工厂
-│       ├── yolo_handler.py # YOLO 检测/分割/姿态
-│       ├── hf_handler.py   # DETR / OWL-ViT / Grounding DINO
-│       └── blip_handler.py # BLIP Caption / VQA
-├── frontend/
-│   ├── index.html          # UI 界面
-│   ├── style.css           # 深色/浅色主题样式
-│   ├── app.js              # 前端入口 (ES Module)
-│   └── js/                 # 前端模块 (api, camera, draw)
-├── tests/                  # API + WebSocket + 单元测试
-├── docs/                   # 详细教学文档
-├── Dockerfile              # 多阶段 Docker 构建
-├── docker-compose.yml      # Compose 编排
-└── pyproject.toml          # 项目元数据 + Ruff 配置
-```
+### 🚀 开始 / Getting Started
+- [安装指南](/docs/getting-started/installation.html)
+- [快速开始](/docs/getting-started/quickstart.html)
+
+### 🔌 API 文档 / API
+- [REST API](/docs/api/rest-api.html)
+- [WebSocket 协议](/docs/api/websocket.html)
+
+### 🏗️ 架构 / Architecture
+- [系统概述](/docs/architecture/overview.html)
+- [处理器模式](/docs/architecture/handlers.html)
+
+### 🐳 部署 / Deployment
+- [Docker 部署](/docs/deployment/docker.html)
+- [环境变量](/docs/deployment/environments.html)
 
 ---
 
-## API 概览
+## 🤝 贡献 / Contributing
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `GET` | `/health` | 健康检查 (版本、设备、默认配置) |
-| `GET` | `/models` | 获取所有可用模型 (按类别分组) |
-| `GET` | `/models/{id}` | 获取指定模型详情 |
-| `GET` | `/labels` | 获取模型标签列表 |
-| `POST` | `/infer` | 统一推理端点 (图像 + 参数) |
-| `POST` | `/caption` | 图像描述生成 |
-| `POST` | `/vqa` | 视觉问答 |
-| `WS` | `/ws` | WebSocket 实时推理 |
+欢迎贡献代码！请查看：
+- [贡献指南](/CONTRIBUTING.html)
+- [代码规范](/AGENTS.html)
 
 ---
 
-## 最近更新
-
-| 日期 | 变更 |
-|------|------|
-| 2026-03-10 | GitHub Pages 第三轮优化 — CI paths-ignore、sitemap、404 页面、文档修正 |
-| 2026-03-10 | GitHub Pages 第二轮优化 — changelog 索引、kramdown GFM、SEO 增强 |
-| 2026-03-09 | GitHub Pages & 文档优化 — 项目主页重写、SEO 元数据、sparse-checkout |
-| 2026-02-25 | 前端 UI 美化 — Inter/JetBrains Mono 字体、设计 Token、动效系统 |
-| 2026-02-13 | **v3.0 架构重构** — 策略模式、Pydantic Settings、lifespan、测试 6→16 |
-
-[查看完整更新日志 →](changelog/)
-
----
-
-## 文档
-
-- [**项目 README**](README.md) — 快速上手指南
-- [**详细教学文档**](docs/README.md) — 架构原理、数据流、前后端实现详解、扩展练习建议
-- [**更新日志**](changelog/) — 版本历史
-- [**贡献指南**](CONTRIBUTING.md) — 如何参与开发
-
----
-
-## 许可证
+## 📜 许可证 / License
 
 [MIT License](https://github.com/LessUp/yolo-toys/blob/main/LICENSE) — 自由使用、修改和分发

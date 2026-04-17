@@ -11,86 +11,16 @@
 <!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 
-<!-- Theme Toggle Script -->
-<script>
-  // Theme toggle functionality
-  (function() {
-    const themeToggle = () => {
-      const currentTheme = localStorage.getItem('theme') || 'auto';
-      const root = document.documentElement;
-      
-      const applyTheme = (theme) => {
-        if (theme === 'dark') {
-          root.setAttribute('data-bs-theme', 'dark');
-          document.body.classList.add('dark-theme');
-        } else if (theme === 'light') {
-          root.setAttribute('data-bs-theme', 'light');
-          document.body.classList.remove('dark-theme');
-        } else {
-          // Auto - follow system
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (prefersDark) {
-            document.body.classList.add('dark-theme');
-          } else {
-            document.body.classList.remove('dark-theme');
-          }
-        }
-      };
-      
-      applyTheme(currentTheme);
-      
-      // Create theme toggle button
-      const addToggleButton = () => {
-        const siteNav = document.querySelector('.site-nav');
-        if (!siteNav || document.querySelector('.theme-toggle')) return;
-        
-        const themeBtn = document.createElement('button');
-        themeBtn.className = 'theme-toggle';
-        themeBtn.setAttribute('aria-label', '切换主题 / Toggle theme');
-        themeBtn.innerHTML = `
-          <span class="theme-icon-light">☀️</span>
-          <span class="theme-icon-dark">🌙</span>
-        `;
-        themeBtn.onclick = () => {
-          const current = localStorage.getItem('theme') || 'auto';
-          const next = current === 'light' ? 'dark' : (current === 'dark' ? 'auto' : 'light');
-          localStorage.setItem('theme', next);
-          applyTheme(next);
-        };
-        
-        siteNav.appendChild(themeBtn);
-      };
-      
-      // Language toggle
-      const addLangToggle = () => {
-        if (document.querySelector('.lang-toggle')) return;
-        
-        const langNav = document.createElement('div');
-        langNav.className = 'lang-nav';
-        langNav.innerHTML = `
-          <a href="{{ site.baseurl }}/" class="lang-link {% if page.lang != 'en' %}active{% endif %}">中文</a>
-          <span class="lang-separator">/</span>
-          <a href="{{ site.baseurl }}/en/" class="lang-link {% if page.lang == 'en' %}active{% endif %}">EN</a>
-        `;
-        
-        const auxNav = document.querySelector('.aux-nav');
-        if (auxNav) {
-          auxNav.insertBefore(langNav, auxNav.firstChild);
-        }
-      };
-      
-      // Wait for DOM to be ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          addToggleButton();
-          addLangToggle();
-        });
-      } else {
-        addToggleButton();
-        addLangToggle();
-      }
-    };
-    
-    themeToggle();
-  })();
-</script>
+<!-- Open Graph Meta Tags -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="{% if page.lang == 'en' %}en_US{% else %}zh_CN{% endif %}">
+<meta property="og:site_name" content="{{ site.title }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@LessUp">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="{{ site.url }}{{ site.baseurl }}{{ page.url }}">
+
+<!-- Alternate Language Links -->
+<link rel="alternate" hreflang="zh-CN" href="{{ site.url }}{{ site.baseurl }}{{ page.url }}">
+<link rel="alternate" hreflang="en" href="{{ site.url }}{{ site.baseurl }}{{ page.url | replace_first: 'docs', 'docs/en' }}">
