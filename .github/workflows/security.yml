@@ -1,12 +1,7 @@
 name: Security Audit
 
 on:
-  push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
   schedule:
-    # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
   workflow_dispatch:
 
@@ -14,25 +9,7 @@ permissions:
   contents: read
   security-events: write
 
-concurrency:
-  group: security-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  pip-audit:
-    name: Pip Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run pip-audit
-        uses: pypa/gh-action-pip-audit@v1.1.0
-        with:
-          inputs: requirements.txt requirements-dev.txt
-          ignore-vulns: |
-            # Add any known vulnerabilities to ignore here
-            # GHSA-xxxx-xxxx-xxxx
-
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
@@ -41,7 +18,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

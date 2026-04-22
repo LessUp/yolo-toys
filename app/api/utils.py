@@ -12,12 +12,12 @@ settings = get_settings()
 
 # 支持的图像类型魔术数字
 ALLOWED_IMAGE_TYPES = {
-    b"\xff\xd8\xff",      # JPEG
-    b"\x89PNG\r\n\x1a\n", # PNG
-    b"GIF87a",           # GIF
-    b"GIF89a",           # GIF
-    b"RIFF",             # WebP (RIFF....WEBP)
-    b"BM",               # BMP
+    b"\xff\xd8\xff",  # JPEG
+    b"\x89PNG\r\n\x1a\n",  # PNG
+    b"GIF87a",  # GIF
+    b"GIF89a",  # GIF
+    b"RIFF",  # WebP (RIFF....WEBP)
+    b"BM",  # BMP
 }
 
 
@@ -29,15 +29,13 @@ def validate_image_mime(data: bytes) -> bool:
         if data.startswith(magic):
             return True
     # Special check for WebP
-    if data.startswith(b"RIFF") and b"WEBP" in data[:12]:
-        return True
-    return False
+    return bool(data.startswith(b"RIFF") and b"WEBP" in data[:12])
 
 
 async def read_upload_image(file: UploadFile) -> tuple[np.ndarray, int]:
     """
     读取上传的图像文件，返回图像数组和文件大小
-    
+
     Raises:
         HTTPException: 文件类型错误、空文件、过大或无法解码
     """
@@ -53,7 +51,7 @@ async def read_upload_image(file: UploadFile) -> tuple[np.ndarray, int]:
     if file_size > settings.max_upload_bytes:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large: {file_size} bytes (max: {settings.max_upload_bytes})"
+            detail=f"File too large: {file_size} bytes (max: {settings.max_upload_bytes})",
         )
 
     # 安全验证：检查魔术数字

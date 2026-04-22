@@ -2,12 +2,11 @@
 FastAPI 中间件 - 速率限制、超时控制、指标收集
 """
 
-import time
 import logging
-from typing import Callable
+import time
+from collections.abc import Callable
 
 from fastapi import Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
@@ -36,7 +35,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
                     "Request to %s took %.2fs (timeout: %.2fs)",
                     request.url.path,
                     duration,
-                    self.timeout
+                    self.timeout,
                 )
             return response
         except Exception as e:
@@ -53,15 +52,13 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
             status_code = response.status_code
-        except Exception as e:
+        except Exception:
             status_code = 500
             raise
         finally:
             duration = time.time() - start_time
             HTTP_REQUEST_DURATION.labels(
-                method=request.method,
-                endpoint=request.url.path,
-                status_code=str(status_code)
+                method=request.method, endpoint=request.url.path, status_code=str(status_code)
             ).observe(duration)
 
             # Update memory metric periodically
@@ -103,8 +100,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Clean old requests
         if client_ip in self.requests:
             self.requests[client_ip] = [
-                t for t in self.requests[client_ip]
-                if current_time - t < 60
+                t for t in self.requests[client_ip] if current_time - t < 60
             ]
         else:
             self.requests[client_ip] = []
@@ -113,9 +109,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if len(self.requests.get(client_ip, [])) >= self.requests_per_minute:
             logger.warning("Rate limit exceeded for %s", client_ip)
             from starlette.responses import JSONResponse
+
             return JSONResponse(
-                status_code=429,
-                content={"detail": "Rate limit exceeded. Try again later."}
+                status_code=429, content={"detail": "Rate limit exceeded. Try again later."}
             )
 
         self.requests[client_ip].append(current_time)

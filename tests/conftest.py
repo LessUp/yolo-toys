@@ -6,8 +6,8 @@
 
 import io
 import os
+from collections.abc import Generator
 from types import SimpleNamespace
-from typing import Generator
 
 import pytest
 from fastapi.testclient import TestClient

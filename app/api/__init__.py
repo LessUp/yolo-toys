@@ -9,9 +9,9 @@ API 路由模块
 - utils: 共享工具函数
 """
 
-from app.api.system import router as system_router
-from app.api.models import router as models_router
 from app.api.inference import router as inference_router
+from app.api.models import router as models_router
+from app.api.system import router as system_router
 from app.api.websocket import router as ws_router
 
 __all__ = [

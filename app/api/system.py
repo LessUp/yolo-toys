@@ -49,5 +49,5 @@ async def clear_cache() -> dict[str, Any]:
     return {
         "status": "ok",
         "cleared_models": before_size,
-        "message": "Model cache cleared successfully"
+        "message": "Model cache cleared successfully",
     }

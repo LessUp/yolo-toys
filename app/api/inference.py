@@ -8,15 +8,14 @@
 
 import asyncio
 import time
-from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
+from app.api.utils import parse_text_queries, read_upload_image
 from app.config import get_settings
-from app.metrics import INFERENCE_REQUESTS, INFERENCE_LATENCY, INFERENCE_INPUT_SIZE
+from app.metrics import INFERENCE_INPUT_SIZE, INFERENCE_LATENCY, INFERENCE_REQUESTS
 from app.model_manager import model_manager
 from app.schemas import InferenceResponse
-from app.api.utils import read_upload_image, parse_text_queries
 
 router = APIRouter(tags=["Inference"])
 settings = get_settings()
@@ -64,11 +63,11 @@ async def infer(
             result["model"] = model_id
 
             duration = time.time() - start_time
-            INFERENCE_LATENCY.labels(model=model_id, task=result.get("task", "detect")).observe(duration)
+            INFERENCE_LATENCY.labels(model=model_id, task=result.get("task", "detect")).observe(
+                duration
+            )
             INFERENCE_REQUESTS.labels(
-                model=model_id,
-                task=result.get("task", "detect"),
-                status="success"
+                model=model_id, task=result.get("task", "detect"), status="success"
             ).inc()
 
             return result

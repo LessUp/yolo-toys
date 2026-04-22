@@ -11,7 +11,6 @@ import logging
 import os
 import time
 import urllib.parse
-import weakref
 from typing import Any
 
 import numpy as np
@@ -226,7 +225,7 @@ class ModelManager:
                     "load_time": self._load_times.get(model_id, 0),
                     "access_count": self._access_count.get(model_id, 0),
                 }
-                for model_id in self._cache.keys()
+                for model_id in self._cache
             },
         }
 

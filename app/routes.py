@@ -13,9 +13,18 @@ API 路由组合模块 - 向后兼容
 
 from fastapi import APIRouter
 
-from app.api.system import router as system_router
-from app.api.models import router as models_router
 from app.api.inference import router as inference_router
+from app.api.models import router as models_router
+from app.api.system import router as system_router
+
+# 向后兼容：导出工具函数
+from app.api.utils import (
+    parse_optional_float,
+    parse_optional_int,
+    parse_text_queries,
+    read_upload_image,
+    validate_image_mime,
+)
 from app.api.websocket import router as ws_router
 
 # 创建主路由
@@ -26,15 +35,6 @@ router.include_router(system_router)
 router.include_router(models_router)
 router.include_router(inference_router)
 router.include_router(ws_router)
-
-# 向后兼容：导出工具函数
-from app.api.utils import (
-    read_upload_image,
-    validate_image_mime,
-    parse_optional_float,
-    parse_optional_int,
-    parse_text_queries,
-)
 
 __all__ = [
     "router",

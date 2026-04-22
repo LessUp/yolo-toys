@@ -8,23 +8,23 @@ from contextlib import asynccontextmanager
 import numpy as np
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app import __version__ as VERSION
 from app.config import get_settings
+from app.metrics import update_memory_metric, update_model_cache_metric
 from app.middleware import (
     MetricsMiddleware,
+    RateLimitMiddleware,
     SecurityHeadersMiddleware,
     TimeoutMiddleware,
-    RateLimitMiddleware,
 )
-from app.model_manager import model_manager
+from app.model_manager import get_memory_usage, model_manager
 from app.routes import router
-from app.metrics import update_model_cache_metric, update_memory_metric
-from app.model_manager import get_memory_usage
 
 settings = get_settings()
 
@@ -41,9 +41,9 @@ async def lifespan(application: FastAPI):
     # ---- startup ----
     logger.info("Starting YOLO-Toys v%s", VERSION)
     logger.info("Device: %s", model_manager.device)
-    logger.info("Cache config: maxsize=%s, ttl=%ss", 
-                model_manager.cache.maxsize,
-                model_manager.cache.ttl)
+    logger.info(
+        "Cache config: maxsize=%s, ttl=%ss", model_manager.cache.maxsize, model_manager.cache.ttl
+    )
 
     if not settings.skip_warmup:
         try:
@@ -85,12 +85,11 @@ app.add_middleware(MetricsMiddleware)
 app.add_middleware(TimeoutMiddleware, timeout_seconds=60.0)
 app.add_middleware(
     RateLimitMiddleware,
-    requests_per_minute=settings.max_concurrency * 60  # 基于并发数调整
+    requests_per_minute=settings.max_concurrency * 60,  # 基于并发数调整
 )
 app.add_middleware(GZipMiddleware, minimum_size=settings.gzip_min_size)
 
 # CORS - 使用更安全的配置
-from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins_list,
@@ -109,8 +108,7 @@ async def metrics():
     update_model_cache_metric(len(model_manager.cache))
     update_memory_metric(get_memory_usage())
     return PlainTextResponse(
-        content=generate_latest().decode("utf-8"),
-        media_type=CONTENT_TYPE_LATEST
+        content=generate_latest().decode("utf-8"), media_type=CONTENT_TYPE_LATEST
     )
 
 

@@ -17,15 +17,15 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.datastructures import ImmutableMultiQueryDict
 
 from app import __version__ as VERSION
+from app.api.utils import parse_text_queries, validate_image_mime
 from app.config import get_settings, parse_bool_string
 from app.metrics import (
-    INFERENCE_REQUESTS,
     INFERENCE_LATENCY,
+    INFERENCE_REQUESTS,
     WEBSOCKET_CONNECTIONS,
     WEBSOCKET_MESSAGES,
 )
 from app.model_manager import model_manager
-from app.api.utils import parse_text_queries, validate_image_mime
 
 router = APIRouter(tags=["WebSocket"])
 logger = logging.getLogger(__name__)
@@ -124,11 +124,8 @@ async def websocket_infer(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                message = await asyncio.wait_for(
-                    websocket.receive(),
-                    timeout=60.0
-                )
-            except asyncio.TimeoutError:
+                message = await asyncio.wait_for(websocket.receive(), timeout=60.0)
+            except TimeoutError:
                 if time.time() - last_ping > 30:
                     try:
                         await websocket.send_json({"type": "ping"})
@@ -169,7 +166,9 @@ async def websocket_infer(websocket: WebSocket) -> None:
                                     "model": state["model_id"],
                                 },
                             )
-                            WEBSOCKET_MESSAGES.labels(message_type="config_updated", direction="out").inc()
+                            WEBSOCKET_MESSAGES.labels(
+                                message_type="config_updated", direction="out"
+                            ).inc()
                         elif msg.get("type") == "ping":
                             await websocket.send_json({"type": "pong"})
                     except json.JSONDecodeError as e:
@@ -189,9 +188,7 @@ async def websocket_infer(websocket: WebSocket) -> None:
             img = _decode_ws_frame(data)
             if img is None:
                 logger.warning("WebSocket 图像解码失败或格式无效")
-                await _ws_send_json(
-                    websocket, {"type": "error", "detail": "invalid image format"}
-                )
+                await _ws_send_json(websocket, {"type": "error", "detail": "invalid image format"})
                 WEBSOCKET_MESSAGES.labels(message_type="error", direction="out").inc()
                 continue
 
@@ -217,18 +214,16 @@ async def websocket_infer(websocket: WebSocket) -> None:
                 result["model"] = state["model_id"]
 
                 duration = time.time() - start_time
-                INFERENCE_LATENCY.labels(model=state["model_id"], task=result.get("task", "detect")).observe(duration)
+                INFERENCE_LATENCY.labels(
+                    model=state["model_id"], task=result.get("task", "detect")
+                ).observe(duration)
                 INFERENCE_REQUESTS.labels(
-                    model=state["model_id"],
-                    task=result.get("task", "detect"),
-                    status="success"
+                    model=state["model_id"], task=result.get("task", "detect"), status="success"
                 ).inc()
 
             except Exception as exc:
                 INFERENCE_REQUESTS.labels(
-                    model=state["model_id"],
-                    task="unknown",
-                    status="error"
+                    model=state["model_id"], task="unknown", status="error"
                 ).inc()
                 logger.warning("WebSocket 推理异常: model=%s, error=%s", state["model_id"], exc)
                 await _ws_send_json(websocket, {"type": "error", "detail": str(exc)})
