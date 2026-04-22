@@ -3,14 +3,9 @@
 """
 
 import io
-import time
-from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-import numpy as np
 import pytest
-from PIL import Image
-
 
 # ------------------------------------------------------------------
 # Metrics 测试
@@ -273,7 +268,7 @@ def test_inference_response():
 
 def test_caption_response():
     """测试 CaptionResponse schema"""
-    from app.schemas import CaptionResponse
+    from app.schemas import InferenceResponse
 
     response = InferenceResponse(
         width=100,
@@ -341,7 +336,7 @@ def test_base_handler_result():
 
 def test_handler_registry_get_category():
     """测试 HandlerRegistry 获取类别"""
-    from app.handlers.registry import MODEL_REGISTRY, handler_registry
+    from app.handlers.registry import handler_registry
 
     # 测试获取已知模型类别
     category = handler_registry.get_category("yolov8n.pt")
@@ -399,8 +394,9 @@ def test_app_version():
 
 def test_parse_ws_state():
     """测试 WebSocket 状态解析"""
-    from app.api.websocket import _parse_ws_state
     from starlette.datastructures import QueryParams
+
+    from app.api.websocket import _parse_ws_state
 
     params = QueryParams([("model", "yolov8n.pt"), ("conf", "0.5")])
     state = _parse_ws_state(params)
@@ -411,8 +407,9 @@ def test_parse_ws_state():
 
 def test_parse_ws_state_defaults():
     """测试 WebSocket 状态默认值"""
-    from app.api.websocket import _parse_ws_state
     from starlette.datastructures import QueryParams
+
+    from app.api.websocket import _parse_ws_state
 
     params = QueryParams([])
     state = _parse_ws_state(params)
@@ -456,6 +453,7 @@ def test_system_stats():
 
     os.environ["SKIP_WARMUP"] = "1"
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     with TestClient(app) as client:
@@ -472,6 +470,7 @@ def test_cache_clear():
 
     os.environ["SKIP_WARMUP"] = "1"
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     with TestClient(app) as client:
@@ -492,6 +491,7 @@ def test_labels_endpoint():
 
     os.environ["SKIP_WARMUP"] = "1"
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     with TestClient(app) as client:
@@ -513,12 +513,14 @@ def test_read_upload_image_invalid():
 
     os.environ["SKIP_WARMUP"] = "1"
     from fastapi import UploadFile
+
     from app.api.utils import read_upload_image
-    import io
 
     # 创建无效的 "图像" 数据
     invalid_data = b"not an image"
     upload = UploadFile(filename="test.txt", file=io.BytesIO(invalid_data))
 
-    with pytest.raises(Exception):
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException):
         read_upload_image(upload, max_bytes=1024 * 1024)
