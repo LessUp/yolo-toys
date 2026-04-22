@@ -14,7 +14,7 @@ from typing import Any
 import cv2
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from starlette.datastructures import ImmutableMultiQueryDict
+from starlette.datastructures import QueryParams
 
 from app import __version__ as VERSION
 from app.api.utils import parse_text_queries, validate_image_mime
@@ -33,7 +33,7 @@ settings = get_settings()
 semaphore = asyncio.Semaphore(settings.max_concurrency)
 
 
-def _parse_ws_state(params: ImmutableMultiQueryDict) -> dict[str, Any]:
+def _parse_ws_state(params: QueryParams) -> dict[str, Any]:
     """从 WebSocket query params 解析初始推理状态"""
     text_queries = parse_text_queries(params.get("text_queries"))
     conf = _get_optional_float(params.get("conf"))
