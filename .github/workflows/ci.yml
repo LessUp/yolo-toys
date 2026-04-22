@@ -88,6 +88,6 @@ jobs:
 
       - name: Run pip-audit
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: pypa/gh-action-pip-audit@v1.9.0
+        uses: pypa/gh-action-pip-audit@v1.1.0
         with:
           inputs: requirements.txt requirements-dev.txt
