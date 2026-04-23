@@ -1,5 +1,5 @@
 # ---- Stage 1: Dependencies ----
-FROM python:3.11-slim AS deps
+FROM python:3.14-slim AS deps
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --prefix=/install --no-cache-dir -r requirements.txt
 
 # ---- Stage 2: Runtime ----
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
