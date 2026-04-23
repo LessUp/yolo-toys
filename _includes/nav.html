@@ -1,7 +1,72 @@
 {%- comment -%}
-  The "Previous" and "Next" page feature is implemented in Just The Docs.
-  This file is intentionally left empty as a placeholder for potential
-  custom navigation modifications.
+Custom Navigation for YOLO-Toys
+Based on Just the Docs nav structure with customizations
 {%- endcomment -%}
 
-{%- include_cached nav_main.html -%}
+<nav aria-label="Main" id="site-nav" class="site-nav">
+  <ul class="nav-list">
+    {%- assign pages_list = site.html_pages | sort:"nav_order" -%}
+
+    {%- for node in pages_list -%}
+      {%- unless node.nav_exclude -%}
+        {%- if node.parent == nil -%}
+          <li class="nav-list-item{% if page.url == node.url or page.parent == node.title %} active{% endif %}">
+            {%- if node.has_children -%}
+              <a href="#" class="nav-list-expander" aria-label="toggle links in {{ node.title }} category">
+                <svg viewBox="0 0 24 24"><use xlink:href="#svg-arrow-right"></use></svg>
+              </a>
+            {%- endif -%}
+
+            <a href="{{ node.url | relative_url }}" class="nav-list-link{% if page.url == node.url %} active{% endif %}">
+              {{ node.title }}
+            </a>
+
+            {%- if node.has_children -%}
+              {%- assign children_list = pages_list | where: "parent", node.title -%}
+              <ul class="nav-list">
+                {%- for child in children_list -%}
+                  {%- unless child.nav_exclude -%}
+                    <li class="nav-list-item {% if page.url == child.url %} active{% endif %}">
+                      {%- if child.has_children -%}
+                        <a href="#" class="nav-list-expander" aria-label="toggle links in {{ child.title }} category">
+                          <svg viewBox="0 0 24 24"><use xlink:href="#svg-arrow-right"></use></svg>
+                        </a>
+                      {%- endif -%}
+
+                      <a href="{{ child.url | relative_url }}" class="nav-list-link{% if page.url == child.url %} active{% endif %}">
+                        {{ child.title }}
+                      </a>
+
+                      {%- if child.has_children -%}
+                        {%- assign grand_children_list = pages_list | where: "parent", child.title | where: "grand_parent", node.title -%}
+                        <ul class="nav-list">
+                          {%- for grand_child in grand_children_list -%}
+                            {%- unless grand_child.nav_exclude -%}
+                              <li class="nav-list-item {% if page.url == grand_child.url %} active{% endif %}">
+                                <a href="{{ grand_child.url | relative_url }}" class="nav-list-link{% if page.url == grand_child.url %} active{% endif %}">
+                                  {{ grand_child.title }}
+                                </a>
+                              </li>
+                            {%- endunless -%}
+                          {%- endfor -%}
+                        </ul>
+                      {%- endif -%}
+                    </li>
+                  {%- endunless -%}
+                {%- endfor -%}
+              </ul>
+            {%- endif -%}
+          </li>
+        {%- endif -%}
+      {%- endunless -%}
+    {%- endfor -%}
+  </ul>
+</nav>
+
+<footer class="site-footer">
+  <p class="text-small text-grey-dk-000 mb-0">
+    <a href="{{ site.baseurl }}/">{{ site.title }}</a>
+    <br>
+    <small>v3.1.0</small>
+  </p>
+</footer>

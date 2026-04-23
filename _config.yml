@@ -1,21 +1,28 @@
-# Site settings
+# Site Settings
+# =============
 title: YOLO-Toys
-description: 多模型实时视觉识别系统 / Multi-Model Real-Time Vision Platform
-tagline: FastAPI + WebSocket 实时物体识别
-repository: "LessUp/yolo-toys"
-url: "https://lessup.github.io"
-baseurl: "/yolo-toys"
+description: >-
+  Multi-model vision inference platform with YOLOv8, DETR, OWL-ViT,
+  Grounding DINO, and BLIP behind one FastAPI + WebSocket interface.
+tagline: Multi-model vision inference with one API surface
+repository: LessUp/yolo-toys
 
-# Language settings
-languages: ["zh", "en"]
-default_lang: "zh"
-exclude_from_localization: ["assets", "images", "favicon.ico", "js"]
-parallel_localization: true
+# URL Configuration
+# -----------------
+url: https://lessup.github.io
+baseurl: /yolo-toys
 
-# Theme - Just The Docs v0.9.0
-remote_theme: "just-the-docs/just-the-docs@v0.9.0"
+# Author Information
+author:
+  name: LessUp
+  github: LessUp
+
+# Theme Configuration
+# -------------------
+remote_theme: just-the-docs/just-the-docs@v0.9.0
 
 # Plugins
+# -------
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
@@ -24,87 +31,81 @@ plugins:
   - jekyll-relative-links
   - jekyll-include-cache
 
-# Just The Docs Configuration
-# https://just-the-docs.com/docs/configuration/
-
-# Color scheme (light, dark, auto)
+# Color Scheme
+# ------------
 color_scheme: auto
 
-# Search configuration
+# Search Configuration
+# --------------------
 search_enabled: true
 search:
-  heading_level: 3
+  heading_level: 2
   previews: 3
   preview_words_before: 5
   preview_words_after: 10
   tokenizer_separator: /[\s/]+/
   rel_url: true
   button: true
-  focus_shortcut_key: 'k'
 
-# Navigation configuration
+# Navigation Configuration
+# ------------------------
 nav_sort: case_insensitive
+nav_external_links: []
 
-# Aux links (top right navigation)
+# Auxiliary Links (Top Right)
+# ---------------------------
 aux_links:
   "🐙 GitHub":
     - "https://github.com/LessUp/yolo-toys"
-  "📦 PyPI":
-    - "https://pypi.org/project/yolo-toys/"
+  "📖 Docs":
+    - "/yolo-toys/docs/"
+  "🚀 Quick Start":
+    - "/yolo-toys/docs/getting-started/quickstart.html"
 aux_links_new_tab: true
 
-# External navigation links
-nav_external_links:
-  - title: "🚀 Live Demo"
-    url: "https://lessup.github.io/yolo-toys/frontend/"
-    hide_icon: false
-    opens_in_new_tab: true
-
-# Footer content
-footer_content: "Copyright &copy; 2026 <a href=\"https://github.com/LessUp\">LessUp</a>. Distributed under <a href=\"https://github.com/LessUp/yolo-toys/blob/main/LICENSE\">MIT License</a>."
+# Footer
+# ------
+footer_content: >
+  Copyright &copy; 2026 <a href="https://github.com/LessUp">LessUp</a>.
+  Distributed under <a href="https://github.com/LessUp/yolo-toys/blob/main/LICENSE">MIT License</a>.
 
 last_edit_timestamp: true
-last_edit_time_format: "%Y-%m-%d %H:%M:%S"
+last_edit_time_format: "%Y-%m-%d %H:%M"
 
-# Back to top link
+# Back to Top
+# -----------
 back_to_top: true
-back_to_top_text: "返回顶部 / Back to top"
+back_to_top_text: "↑ Back to top"
 
-# Heading anchor links
+# Heading Anchors
+# ---------------
 heading_anchors: true
 
-# Callouts (alerts)
+# Callouts Configuration
+# ----------------------
 callouts:
   highlight:
     color: yellow
   important:
-    title: 重要 / Important
+    title: Important
     color: blue
   new:
-    title: 新功能 / New
+    title: New
     color: green
   note:
-    title: 注意 / Note
+    title: Note
     color: purple
   warning:
-    title: 警告 / Warning
+    title: Warning
     color: red
-  tip:
-    title: 提示 / Tip
-    color: green
-  experimental:
-    title: 实验性 / Experimental
-    color: yellow
 
-# Code copy button
 copy_code: true
 
-# KaTeX math rendering
+# Kramdown Configuration
+# ----------------------
 kramdown:
-  math_engine: katex
-  input: GFM
   syntax_highlighter: rouge
-  highlighter: rouge
+  input: GFM
   syntax_highlighter_opts:
     block:
       line_numbers: true
@@ -112,9 +113,11 @@ kramdown:
       line_numbers: false
 
 # Timezone
+# --------
 timezone: Asia/Shanghai
 
-# Exclusions from build
+# Exclusions
+# ----------
 exclude:
   - "*.pt"
   - "*.onnx"
@@ -133,16 +136,8 @@ exclude:
   - __pycache__
   - node_modules
   - vendor
-  - app
-  - frontend/js/*.map
-  - frontend/*.map
-  - tests
-  - models
-  - runs
-  - uploads
-  - deployments
-  - config
-  - scripts
+  - Gemfile
+  - Gemfile.lock
   - Dockerfile
   - docker-compose.yml
   - Makefile
@@ -150,8 +145,6 @@ exclude:
   - pyproject.toml
   - .pre-commit-config.yaml
   - .editorconfig
-  - Gemfile
-  - Gemfile.lock
   - LICENSE
   - SECURITY.md
   - CODE_OF_CONDUCT.md
@@ -160,13 +153,10 @@ exclude:
   - CLAUDE.md
   - release-notes.md
   - PROJECT_STRUCTURE.md
-
-# Include processing
-include:
-  - _pages
-  - _data
+  - "_data/!*"
 
 # Collections
+# -----------
 collections:
   docs:
     permalink: "/:collection/:path"
@@ -175,7 +165,8 @@ collections:
     permalink: "/:collection/:path"
     output: true
 
-# Defaults for pages
+# Default Front Matter
+# --------------------
 defaults:
   - scope:
       path: ""
@@ -186,24 +177,20 @@ defaults:
       path: "docs"
       type: "pages"
     values:
-      parent: "文档 / Documentation"
+      parent: "Documentation"
+      nav_order: 10
   - scope:
       path: "changelog"
       type: "pages"
     values:
-      parent: "更新日志 / Changelog"
+      parent: "Changelog"
       nav_order: 100
-  - scope:
-      path: "README.md"
-    values:
-      permalink: "/"
-      nav_exclude: false
   - scope:
       path: "index.md"
     values:
       permalink: "/"
-      layout: home
-      nav_order: 1
+      layout: default
+      nav_exclude: true
   - scope:
       path: "404.md"
     values:

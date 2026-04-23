@@ -1,26 +1,102 @@
-<!-- Custom Head Elements -->
+<!-- ============================================
+     YOLO-Toys Custom Head Elements
+     ============================================ -->
+
+<!-- Preconnect to external domains -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://github.com">
 
-<!-- Inter & JetBrains Mono Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<!-- Custom CSS -->
+<!-- Custom Styles -->
 <link rel="stylesheet" href="{{ '/assets/css/custom.css' | relative_url }}">
 
 <!-- Favicon -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
-
-<!-- Open Graph Meta Tags -->
-<meta property="og:type" content="website">
-<meta property="og:locale" content="{% if page.lang == 'en' %}en_US{% else %}zh_CN{% endif %}">
-<meta property="og:site_name" content="{{ site.title }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@LessUp">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎯%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%234f46e5' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle'%3E🎯%3C/text%3E%3C/svg%3E">
 
 <!-- Canonical URL -->
-<link rel="canonical" href="{{ site.url }}{{ site.baseurl }}{{ page.url }}">
+<link rel="canonical" href="{{ site.url }}{{ site.baseurl }}{{ page.url | replace: 'index.html', '' }}">
 
-<!-- Alternate Language Links -->
-<link rel="alternate" hreflang="zh-CN" href="{{ site.url }}{{ site.baseurl }}{{ page.url }}">
-<link rel="alternate" hreflang="en" href="{{ site.url }}{{ site.baseurl }}{{ page.url | replace_first: 'docs', 'docs/en' }}">
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="{% if page.layout == 'default' and page.url == '/' %}website{% else %}article{% endif %}">
+<meta property="og:url" content="{{ site.url }}{{ site.baseurl }}{{ page.url }}">
+<meta property="og:title" content="{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}">
+<meta property="og:description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+<meta property="og:site_name" content="{{ site.title }}">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="{{ site.url }}{{ site.baseurl }}/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@LessUp">
+<meta name="twitter:creator" content="@LessUp">
+<meta name="twitter:title" content="{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}">
+<meta name="twitter:description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+<meta name="twitter:image" content="{{ site.url }}{{ site.baseurl }}/assets/images/og-image.png">
+
+<!-- Theme Color for Mobile Browsers -->
+<meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)">
+
+<!-- Structured Data: SoftwareApplication -->
+{% if page.url == '/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "YOLO-Toys",
+  "description": "Multi-Model Real-Time Vision Recognition Platform supporting YOLOv8, DETR, OWL-ViT, Grounding DINO, and BLIP models",
+  "url": "{{ site.url }}{{ site.baseurl }}",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "softwareVersion": "3.1.0",
+  "programmingLanguage": ["Python", "FastAPI"],
+  "license": "https://github.com/LessUp/yolo-toys/blob/main/LICENSE",
+  "codeRepository": "https://github.com/LessUp/yolo-toys",
+  "author": {
+    "@type": "Organization",
+    "name": "LessUp",
+    "url": "https://github.com/LessUp"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+{% endif %}
+
+<!-- Structured Data: WebSite -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ site.title }}",
+  "url": "{{ site.url }}{{ site.baseurl }}",
+  "description": "{{ site.description }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ site.url }}{{ site.baseurl }}/search?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+<!-- Mobile Optimization -->
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="YOLO-Toys">
+
+<!-- Performance: Prefetch Documentation Pages -->
+<link rel="prefetch" href="{{ '/docs/getting-started/quickstart.html' | relative_url }}">
+<link rel="prefetch" href="{{ '/docs/getting-started/installation.html' | relative_url }}">
