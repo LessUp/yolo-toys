@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.3)"/>
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="200" cy="150" r="300" fill="url(#glow)"/>
+  <circle cx="1000" cy="500" r="250" fill="url(#glow)"/>
+
+  <!-- Grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  </pattern>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Logo -->
+  <text x="600" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="120" font-weight="800" fill="white" text-anchor="middle">🎯 YOLO-Toys</text>
+
+  <!-- Tagline -->
+  <text x="600" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="400" fill="rgba(255,255,255,0.9)" text-anchor="middle">Multi-Model Real-Time Vision Platform</text>
+
+  <!-- Features -->
+  <text x="600" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="500" fill="rgba(255,255,255,0.7)" text-anchor="middle">YOLOv8 • DETR • OWL-ViT • Grounding DINO • BLIP</text>
+
+  <!-- Bottom badge -->
+  <rect x="500" y="500" width="200" height="40" rx="20" fill="rgba(255,255,255,0.2)"/>
+  <text x="600" y="527" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white" text-anchor="middle">fastapi • websocket • docker</text>
+</svg>

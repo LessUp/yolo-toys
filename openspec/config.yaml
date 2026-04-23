@@ -1,0 +1,14 @@
+schema: spec-driven
+context: |
+  Project: YOLO-Toys - Multi-model real-time vision recognition platform
+  Tech Stack: Python 3.11+, FastAPI, Ultralytics YOLOv8, HuggingFace Transformers
+  Device Support: CPU, NVIDIA CUDA, Apple MPS
+  Key Patterns: Strategy (Handler), Registry, Template Method, Dependency Injection
+
+rules:
+  proposal:
+    - Keep proposals concise.
+    - Reference existing handlers for similar patterns.
+  tasks:
+    - Use specific file paths.
+    - Include test file updates for each code change.

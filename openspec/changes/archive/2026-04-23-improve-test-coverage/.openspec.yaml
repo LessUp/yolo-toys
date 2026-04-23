@@ -1,0 +1,19 @@
+schema: change
+name: improve-test-coverage
+status: proposed
+created: 2026-04-23
+artifacts:
+  - id: proposal
+    path: proposal.md
+    status: done
+  - id: design
+    path: design.md
+    status: done
+  - id: tasks
+    path: tasks.md
+    status: done
+apply:
+  requires:
+    - proposal
+    - design
+    - tasks
