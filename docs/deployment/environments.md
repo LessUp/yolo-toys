@@ -1,3 +1,10 @@
+---
+layout: default
+title: Environment Variables
+parent: Deployment
+nav_order: 2
+---
+
 # Environment Variables Reference
 
 Complete reference for all configuration options.

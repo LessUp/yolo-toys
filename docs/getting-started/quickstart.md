@@ -1,3 +1,10 @@
+---
+layout: default
+title: Quick Start
+parent: Getting Started
+nav_order: 1
+---
+
 # Quick Start Guide
 
 Get YOLO-Toys running and perform your first object detection in under 5 minutes.

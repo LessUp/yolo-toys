@@ -1,3 +1,10 @@
+---
+layout: default
+title: Adding Custom Models
+parent: Documentation
+nav_order: 22
+---
+
 # Adding Custom Models
 
 Step-by-step guide to extend YOLO-Toys with your own models.

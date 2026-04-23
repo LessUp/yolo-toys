@@ -19,14 +19,14 @@ document.querySelectorAll('.feedback-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     const vote = this.dataset.vote;
     const page = window.location.pathname;
-    
+
     // Send to GitHub Issues or analytics
     console.log(`Feedback on ${page}: ${vote}`);
-    
+
     // Show thanks
     document.querySelector('.feedback-thanks').style.display = 'block';
     document.querySelector('.feedback-buttons').style.display = 'none';
-    
+
     // Optionally open GitHub issue for "not helpful"
     if (vote === 'not-helpful') {
       setTimeout(() => {

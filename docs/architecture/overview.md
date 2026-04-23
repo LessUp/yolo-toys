@@ -1,3 +1,10 @@
+---
+layout: default
+title: System Overview
+parent: Architecture
+nav_order: 1
+---
+
 # System Architecture Overview
 
 Understanding the design principles and data flow of YOLO-Toys.

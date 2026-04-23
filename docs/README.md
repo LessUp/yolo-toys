@@ -1,87 +1,34 @@
-# YOLO-Toys Documentation
-
-Welcome to the YOLO-Toys documentation! This guide will help you understand, deploy, and extend the multi-model real-time vision recognition platform.
-
-<!-- LANG:EN -->
-<p align="center">
-  <a href="README.zh-CN.md">简体中文</a> •
-  <a href="../README.md">🏠 Home</a> •
-  <a href="../changelog/CHANGELOG.md">📝 Changelog</a>
-</p>
-
+---
+layout: default
+title: Documentation
+nav_order: 10
+has_children: true
 ---
 
-## 📚 Documentation Structure
+# Documentation
 
-### 🚀 Getting Started
-New to YOLO-Toys? Start here.
+Use this section when you already know you need **how-to, API, architecture, or deployment details**.
 
-| Document | Description |
-|----------|-------------|
-| [Installation Guide](./getting-started/installation.md) | System requirements and installation steps |
-| [Quick Start](./getting-started/quickstart.md) | Your first detection in 5 minutes |
+If you are new to the project, start with the [repository README](../README.md) or the [landing site](https://lessup.github.io/yolo-toys/).
 
-### 🔌 API Reference
-Complete API documentation for integration.
+## Read by intent
 
-| Document | Description |
-|----------|-------------|
-| [REST API](./api/rest-api.md) | HTTP endpoints reference |
-| [WebSocket Protocol](./api/websocket.md) | Real-time streaming protocol |
+| I need... | Start here |
+| --- | --- |
+| a local or Docker setup path | [Getting Started](./getting-started/index.md) |
+| endpoint contracts and examples | [API](./api/index.md) |
+| handler architecture and request flow | [Architecture](./architecture/index.md) |
+| deployment and environment details | [Deployment](./deployment/index.md) |
+| supported models and FAQ | [Reference](./reference/index.md) |
 
-### 🏗️ Architecture
-Understanding the system design.
+## Documentation boundaries
 
-| Document | Description |
-|----------|-------------|
-| [System Overview](./architecture/overview.md) | High-level architecture and data flow |
-| [Handler Pattern](./architecture/handlers.md) | Strategy pattern implementation |
+- `README*` is the repository entry point
+- this `docs/` tree is long-form product and operator documentation
+- GitHub Pages landing content is for orientation and presentation
+- `changelog/` is release history only
 
-### 🐳 Deployment
-Production deployment guides.
+## Language
 
-| Document | Description |
-|----------|-------------|
-| [Docker Deployment](./deployment/docker.md) | Container deployment options |
-| [Environment Variables](./deployment/environments.md) | Configuration reference |
-
-### 📖 Guides
-Step-by-step tutorials.
-
-| Document | Description |
-|----------|-------------|
-| [Adding Custom Models](./guides/adding-models.md) | Extend with your own models |
-
-### 📋 Reference
-Quick reference materials.
-
-| Document | Description |
-|----------|-------------|
-| [Supported Models](./reference/models.md) | Full model list and specifications |
-| [FAQ](./reference/faq.md) | Frequently asked questions |
-| [Changelog](../changelog/CHANGELOG.md) | Version history |
-
----
-
-## 🎯 Quick Links
-
-- **Live Demo**: https://lessup.github.io/yolo-toys/
-- **GitHub Repository**: https://github.com/LessUp/yolo-toys
-- **Issue Tracker**: https://github.com/LessUp/yolo-toys/issues
-- **Contributing Guide**: ../CONTRIBUTING.md
-
----
-
-## 🌐 Language
-
-This documentation is available in:
-- 🇺🇸 [English](./README.md) (Current)
-- 🇨🇳 [简体中文](./README.zh-CN.md)
-
----
-
-<div align="center">
-
-**[⬆ Back to Top](#yolo-toys-documentation)**
-
-</div>
+- [English](./README.md)
+- [简体中文](./README.zh-CN.md)

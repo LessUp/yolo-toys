@@ -1,3 +1,10 @@
+---
+layout: default
+title: FAQ
+parent: Documentation
+nav_order: 21
+---
+
 # Frequently Asked Questions (FAQ)
 
 Common questions and troubleshooting tips.

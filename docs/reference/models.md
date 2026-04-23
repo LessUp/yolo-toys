@@ -1,3 +1,10 @@
+---
+layout: default
+title: Supported Models
+parent: Documentation
+nav_order: 20
+---
+
 # Supported Models Reference
 
 Complete list of all supported models with specifications and benchmarks.

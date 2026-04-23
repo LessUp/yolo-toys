@@ -1,3 +1,10 @@
+---
+layout: default
+title: Handler Pattern
+parent: Architecture
+nav_order: 2
+---
+
 # Handler Pattern
 
 Deep dive into the Strategy Pattern implementation for model inference.

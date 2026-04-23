@@ -1,3 +1,10 @@
+---
+layout: default
+title: REST API
+parent: API Reference
+nav_order: 1
+---
+
 # REST API Reference
 
 Complete reference for YOLO-Toys HTTP API endpoints.

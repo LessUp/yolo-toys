@@ -1,3 +1,10 @@
+---
+layout: default
+title: Docker
+parent: Deployment
+nav_order: 1
+---
+
 # Docker Deployment
 
 Deploy YOLO-Toys using Docker containers.

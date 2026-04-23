@@ -1,3 +1,10 @@
+---
+layout: default
+title: Installation
+parent: Getting Started
+nav_order: 2
+---
+
 # Installation Guide
 
 This guide covers all the ways to install and set up YOLO-Toys on your system.

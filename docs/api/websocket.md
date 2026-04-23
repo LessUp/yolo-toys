@@ -1,3 +1,10 @@
+---
+layout: default
+title: WebSocket
+parent: API Reference
+nav_order: 2
+---
+
 # WebSocket Protocol
 
 Real-time streaming protocol for low-latency object detection.
