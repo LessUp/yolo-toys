@@ -3,7 +3,7 @@
 # Run: docker run --gpus all -p 8000:8000 yolo-toys:cuda
 
 # ---- Stage 1: Dependencies ----
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS deps
+FROM nvidia/cuda:13.2.1-runtime-ubuntu22.04 AS deps
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --prefix=/install --no-cache-dir -r requirements.txt
 
 # ---- Stage 2: Runtime ----
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS runtime
+FROM nvidia/cuda:13.2.1-runtime-ubuntu22.04 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
