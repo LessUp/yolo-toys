@@ -1,64 +1,32 @@
 ---
-name: Feature request
-about: Suggest a new feature or enhancement
-title: '[Feature] '
+name: Improvement request
+about: Propose a scoped improvement that still fits YOLO-Toys finalization priorities
+title: "[Improvement] "
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
-## Problem Statement
+## Problem
 
-<!-- What problem does this feature solve? Who would benefit? -->
+## Why should this land before archive/finalization?
 
-**As a** [user/developer],
-**I want** [to do something],
-**So that** [I can achieve some goal].
+## Proposed improvement
 
-## Proposed Solution
+## Affected surface
 
-<!-- Describe the solution you'd like to see implemented -->
+- [ ] Runtime API
+- [ ] Tests
+- [ ] Documentation / README
+- [ ] GitHub Pages / packaging
+- [ ] Workflows / automation
+- [ ] Tooling / developer workflow
 
-### API Changes (if applicable)
+## OpenSpec impact
 
-<!-- Any new endpoints, parameters, or response changes -->
+- [ ] This likely needs a new or updated OpenSpec change
+- [ ] This can fit into an existing active change
+- [ ] Unsure
 
-```python
-# Example API usage
-```
+## Alternatives considered
 
-### UI Changes (if applicable)
-
-<!-- Describe any UI changes or add mockups -->
-
-## Alternatives Considered
-
-<!-- List any alternative solutions you've considered -->
-
-1. ...
-2. ...
-
-## Use Cases
-
-<!-- Describe specific use cases for this feature -->
-
-1. **Use case 1**: ...
-2. **Use case 2**: ...
-
-## Priority
-
-<!-- How important is this feature? -->
-
-- [ ] Critical — Blocking production use
-- [ ] High — Significant impact on workflow
-- [ ] Medium — Nice to have
-- [ ] Low — Minor enhancement
-
-## Willing to Contribute?
-
-- [ ] Yes, I'd like to submit a PR for this feature
-- [ ] Yes, I can help with testing
-- [ ] No, just suggesting
-
-## Additional Context
-
-<!-- Add any other context, screenshots, or references -->
+## Additional context

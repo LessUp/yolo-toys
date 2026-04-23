@@ -14,12 +14,6 @@ on:
       - '_pages/**'
       - 'docs/**'
       - 'changelog/**'
-      - 'README.md'
-      - 'README.zh-CN.md'
-      - 'CONTRIBUTING.md'
-      - 'CODE_OF_CONDUCT.md'
-      - 'SECURITY.md'
-      - 'LICENSE'
       - '.github/workflows/pages.yml'
       - 'assets/**'
   workflow_dispatch:
@@ -53,12 +47,6 @@ jobs:
             _pages
             docs
             changelog
-            README.md
-            README.zh-CN.md
-            CONTRIBUTING.md
-            CODE_OF_CONDUCT.md
-            SECURITY.md
-            LICENSE
             assets
 
       - name: Setup Pages

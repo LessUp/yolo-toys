@@ -1,34 +1,26 @@
 ---
 name: Question
-about: Ask a question about YOLO-Toys
-title: '[Question] '
+about: Ask a usage or maintenance question about YOLO-Toys
+title: "[Question] "
 labels: question
-assignees: ''
+assignees: ""
 ---
 
 ## Question
 
-<!-- What would you like to know? -->
+## What have you already checked?
 
-## What I've Tried
-
-<!-- Describe what you've already attempted -->
-
-## Documentation Checked
-
-- [ ] README.md
-- [ ] docs/README.md
-- [ ] CLAUDE.md
+- [ ] README
+- [ ] docs/
 - [ ] Existing issues
+- [ ] Relevant OpenSpec docs (if maintainer/developer question)
 
-## Environment
+## Context
 
 | Item | Value |
 |------|-------|
-| Python version | |
-| Model used | |
+| Python | |
 | Device | CPU / CUDA / MPS |
+| Model (if relevant) | |
 
-## Additional Context
-
-<!-- Add any other relevant information -->
+## Additional details

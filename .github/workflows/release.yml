@@ -119,22 +119,3 @@ jobs:
           labels: ${{ steps.meta-cuda.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  sbom:
-    name: Generate SBOM
-    runs-on: ubuntu-latest
-    needs: create-release
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          format: spdx-json
-          output-file: sbom.spdx.json
-
-      - name: Upload SBOM to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.create-release.outputs.tag_name }}
-          files: sbom.spdx.json

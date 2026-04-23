@@ -1,58 +1,32 @@
 ## Summary
 
-<!-- Brief description of what this PR does and why -->
+<!-- What changed, and why was this worth changing now? -->
 
-## Type of Change
+## OpenSpec
 
-<!-- Mark the relevant option with an 'x' -->
+- Change: <!-- e.g. normalize-project-for-archive / N/A -->
+- Task(s): <!-- e.g. 2.1, 2.2 -->
 
-- [ ] 🚀 `feat` — New feature
-- [ ] 🐛 `fix` — Bug fix
-- [ ] 📚 `docs` — Documentation only
-- [ ] 🎨 `style` — UI/styling changes
-- [ ] ♻️ `refactor` — Code refactoring
-- [ ] ✅ `test` — Adding/updating tests
-- [ ] 🔧 `chore` — Build/config changes
+## Surfaces Touched
 
-## Changes Made
+- [ ] Runtime (`app/`, `tests/`)
+- [ ] Governance / OpenSpec
+- [ ] Docs / README / changelog
+- [ ] GitHub Pages / public packaging
+- [ ] GitHub workflows / templates / repo metadata
+- [ ] Tooling / editor / AI configuration
 
-<!-- List key changes -->
+## Validation
 
--
--
--
+- [ ] `make lint`
+- [ ] `make test`
+- [ ] Manual browser check
+- [ ] Workflow or metadata verification
 
-## Screenshots (if applicable)
+## Public-Surface Impact
 
-<!-- For UI changes, add before/after screenshots -->
+<!-- If this changes README, Pages, docs, or GitHub metadata, explain how they stay aligned. -->
 
-| Before | After |
-|--------|-------|
-|        |       |
+## Notes for Reviewers
 
-## Testing
-
-<!-- How did you test this change? -->
-
-- [ ] Ran `make lint` locally (Ruff checks pass)
-- [ ] Ran `make test` locally (pytest passes)
-- [ ] Tested manually in browser
-- [ ] Tested with Docker build
-
-## Checklist
-
-- [ ] Code follows project style (Ruff formatting)
-- [ ] Added/updated tests for new functionality
-- [ ] Updated documentation if needed
-- [ ] Commit messages follow Conventional Commits
-- [ ] No new warnings or errors
-
-## Related Issues
-
-<!-- Link any related issues -->
-
-Fixes #
-
-## Additional Notes
-
-<!-- Any extra context for reviewers -->
+<!-- Anything non-obvious, risky, or intentionally deferred -->
