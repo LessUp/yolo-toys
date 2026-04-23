@@ -81,7 +81,7 @@ class ModelCache(TTLCache):
         """驱逐最久未使用的模型"""
         if not self._access_times:
             return
-        oldest_key = min(self._access_times, key=self._access_times.get)
+        oldest_key = min(self._access_times, key=lambda cache_key: self._access_times[cache_key])
         logger.warning("内存压力，驱逐模型缓存: %s", oldest_key)
         self.pop(oldest_key, None)
         self._access_times.pop(oldest_key, None)

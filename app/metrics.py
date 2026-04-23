@@ -5,7 +5,7 @@ Prometheus 指标导出
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from prometheus_client import Counter, Gauge, Histogram, Info
 
@@ -77,7 +77,7 @@ def track_inference(model: str, task: str = "detect"):
                 INFERENCE_REQUESTS.labels(model=model, task=task, status=status).inc()
                 INFERENCE_LATENCY.labels(model=model, task=task).observe(duration)
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 

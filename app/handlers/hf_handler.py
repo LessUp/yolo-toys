@@ -2,6 +2,7 @@
 HuggingFace Transformers 模型处理器 - DETR / OWL-ViT / Grounding DINO
 """
 
+import importlib.util
 import logging
 import time
 from typing import Any
@@ -16,27 +17,23 @@ try:
 except ImportError:
     torch = None
 
-_HF_AVAILABLE = False
-try:
-    from transformers import (
-        AutoModelForZeroShotObjectDetection,
-        AutoProcessor,
-        DetrForObjectDetection,
-        DetrImageProcessor,
-    )
-
-    _HF_AVAILABLE = True
-except ImportError:
-    pass
+_HF_AVAILABLE = importlib.util.find_spec("transformers") is not None
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def _require_hf():
+def _require_hf() -> None:
     """Check if HuggingFace transformers is available."""
     if not _HF_AVAILABLE:
         raise RuntimeError("transformers not installed")
+
+
+def _require_torch() -> Any:
+    """Return torch module when available."""
+    if torch is None:
+        raise RuntimeError("torch not installed")
+    return torch
 
 
 # ======================================================================
@@ -49,6 +46,8 @@ class DETRHandler(BaseHandler):
 
     def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
+        from transformers import DetrForObjectDetection, DetrImageProcessor
+
         processor = DetrImageProcessor.from_pretrained(model_id)
         model = DetrForObjectDetection.from_pretrained(model_id)
         model = self._model_to_device(model)
@@ -70,19 +69,20 @@ class DETRHandler(BaseHandler):
         question: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.time()
+        torch_module = _require_torch()
         pil_image = self.bgr_to_pil(image)
 
         inputs = processor(images=pil_image, return_tensors="pt")
         inputs = self._to_device(inputs)
 
         try:
-            with torch.no_grad():
+            with torch_module.no_grad():
                 outputs = model(**inputs)
         except Exception as e:
             logger.error("DETR 推理失败: %s", e)
             raise
 
-        target_sizes = torch.tensor([pil_image.size[::-1]])
+        target_sizes = torch_module.as_tensor([pil_image.size[::-1]])
         if self._device != "cpu":
             target_sizes = target_sizes.to(self._device)
 
@@ -120,6 +120,8 @@ class OWLViTHandler(BaseHandler):
 
     def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
+        from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
+
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
         model = self._model_to_device(model)
@@ -141,6 +143,7 @@ class OWLViTHandler(BaseHandler):
         question: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.time()
+        torch_module = _require_torch()
         queries = text_queries or ["object"]
         pil_image = self.bgr_to_pil(image)
 
@@ -148,13 +151,13 @@ class OWLViTHandler(BaseHandler):
         inputs = self._to_device(inputs)
 
         try:
-            with torch.no_grad():
+            with torch_module.no_grad():
                 outputs = model(**inputs)
         except Exception as e:
             logger.error("OWL-ViT 推理失败: %s", e)
             raise
 
-        target_sizes = torch.tensor([pil_image.size[::-1]])
+        target_sizes = torch_module.as_tensor([pil_image.size[::-1]])
         if self._device != "cpu":
             target_sizes = target_sizes.to(self._device)
         results = processor.post_process_object_detection(
@@ -193,6 +196,8 @@ class GroundingDINOHandler(BaseHandler):
 
     def load(self, model_id: str) -> tuple[Any, Any]:
         _require_hf()
+        from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
+
         processor = AutoProcessor.from_pretrained(model_id)
         model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
         model = self._model_to_device(model)
@@ -213,10 +218,8 @@ class GroundingDINOHandler(BaseHandler):
         text_queries: list[str] | None = None,
         question: str | None = None,
     ) -> dict[str, Any]:
-        if torch is None:
-            raise RuntimeError("torch not installed")
-
         t0 = time.time()
+        torch_module = _require_torch()
         queries = text_queries or ["object"]
         pil_image = self.bgr_to_pil(image)
 
@@ -234,7 +237,7 @@ class GroundingDINOHandler(BaseHandler):
         inputs = self._to_device(inputs)
 
         try:
-            with torch.no_grad():
+            with torch_module.no_grad():
                 outputs = model(**inputs)
         except Exception as e:
             logger.error("GroundingDINO 推理失败: %s", e)
@@ -257,8 +260,16 @@ class GroundingDINOHandler(BaseHandler):
         scores = result.get("scores")
         det_labels = result.get("labels") or result.get("text_labels") or []
 
-        boxes_np = boxes.detach().cpu().numpy() if hasattr(boxes, "detach") else np.zeros((0, 4))
-        scores_np = scores.detach().cpu().numpy() if hasattr(scores, "detach") else np.zeros((0,))
+        boxes_np = (
+            boxes.detach().cpu().numpy()
+            if boxes is not None and hasattr(boxes, "detach")
+            else np.zeros((0, 4))
+        )
+        scores_np = (
+            scores.detach().cpu().numpy()
+            if scores is not None and hasattr(scores, "detach")
+            else np.zeros((0,))
+        )
 
         dets: list[dict[str, Any]] = []
         for i in range(int(scores_np.shape[0])):

@@ -21,6 +21,13 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def _require_torch() -> Any:
+    """Return torch module when available."""
+    if torch is None:
+        raise RuntimeError("torch not installed")
+    return torch
+
+
 class BLIPCaptionHandler(BaseHandler):
     """BLIP 图像描述生成"""
 
@@ -49,13 +56,14 @@ class BLIPCaptionHandler(BaseHandler):
         question: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.time()
+        torch_module = _require_torch()
         pil_image = self.bgr_to_pil(image)
 
         inputs = processor(pil_image, return_tensors="pt")
         inputs = self._to_device(inputs)
 
         try:
-            with torch.no_grad():
+            with torch_module.no_grad():
                 out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
         except Exception as e:
             logger.error("BLIP Caption 推理失败: %s", e)
@@ -95,6 +103,7 @@ class BLIPVQAHandler(BaseHandler):
         question: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.time()
+        torch_module = _require_torch()
         q = question or "What is in this image?"
         pil_image = self.bgr_to_pil(image)
 
@@ -102,7 +111,7 @@ class BLIPVQAHandler(BaseHandler):
         inputs = self._to_device(inputs)
 
         try:
-            with torch.no_grad():
+            with torch_module.no_grad():
                 out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
         except Exception as e:
             logger.error("BLIP VQA 推理失败: %s", e)
