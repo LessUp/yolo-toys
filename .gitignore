@@ -33,4 +33,12 @@ runs/
 
 # BMad Method V6
 _bmad/
-_bmad-output/
+_bbmad-output/
+
+# Test coverage
+.coverage
+htmlcov/
+*.cover
+
+# Type checker
+pyrightconfig.json
