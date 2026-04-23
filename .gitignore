@@ -30,3 +30,7 @@ runs/
 *.pt
 *.onnx
 *.engine
+
+# BMad Method V6
+_bmad/
+_bmad-output/
