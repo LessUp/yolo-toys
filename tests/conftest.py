@@ -8,6 +8,7 @@ import io
 import os
 from collections.abc import Generator
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -122,3 +123,47 @@ def mock_load_model_with_names(monkeypatch: pytest.MonkeyPatch):
         return fake_load_model
 
     return create_mock
+
+
+# ------------------------------------------------------------------
+# Handler Test Fixtures
+# ------------------------------------------------------------------
+
+
+def _create_mock_tensor(arr):
+    """创建模拟的 tensor 对象，支持 detach().cpu().numpy() 链式调用"""
+    import numpy as np
+
+    mock = MagicMock()
+    mock.detach.return_value.cpu.return_value.numpy.return_value = np.array(arr)
+    return mock
+
+
+@pytest.fixture()
+def mock_tensor_factory():
+    """返回创建 mock tensor 的工厂函数"""
+    return _create_mock_tensor
+
+
+@pytest.fixture()
+def mock_yolo_handler():
+    """创建模拟的 YOLO handler"""
+    handler = MagicMock()
+    handler.device = "cpu"
+    return handler
+
+
+@pytest.fixture()
+def mock_hf_handler():
+    """创建模拟的 HuggingFace handler"""
+    handler = MagicMock()
+    handler.device = "cpu"
+    return handler
+
+
+@pytest.fixture()
+def mock_blip_handler():
+    """创建模拟的 BLIP handler"""
+    handler = MagicMock()
+    handler.device = "cpu"
+    return handler

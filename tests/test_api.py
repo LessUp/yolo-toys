@@ -349,6 +349,88 @@ def test_websocket_query_params_preserve_zero_and_false_values(
 
 
 # ------------------------------------------------------------------
+# WebSocket Error Handling Tests
+# ------------------------------------------------------------------
+
+
+def test_websocket_invalid_image_format(client: TestClient):
+    """测试 WebSocket 发送无效图像格式"""
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        # 发送无效的二进制数据（不是图像）
+        ws.send_bytes(b"not an image data")
+        result = ws.receive_json()
+        assert result.get("type") == "error"
+        assert "detail" in result
+
+
+def test_websocket_empty_binary_frame(client: TestClient):
+    """测试 WebSocket 发送空二进制帧"""
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        ws.send_bytes(b"")
+        result = ws.receive_json()
+        assert result.get("type") == "error"
+
+
+def test_websocket_invalid_json_config(client: TestClient):
+    """测试 WebSocket 发送无效 JSON 配置消息"""
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        # 发送非 JSON 的文本消息会被忽略（不触发错误）
+        ws.send_text("not valid json")
+        # 不应该收到响应（无效 JSON 被忽略）
+
+
+def test_websocket_inference_error(client: TestClient, image_bytes: bytes, monkeypatch):
+    """测试 WebSocket 推理错误处理"""
+    from app.model_manager import model_manager
+
+    def fake_infer_error(*, model_id: str, image, **kwargs):
+        raise RuntimeError("Inference failed")
+
+    monkeypatch.setattr(model_manager, "infer", fake_infer_error)
+
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        ws.send_bytes(image_bytes)
+        result = ws.receive_json()
+        assert result.get("type") == "error"
+        assert "Inference failed" in result.get("detail", "")
+
+
+def test_websocket_file_too_large(client: TestClient, monkeypatch):
+    """测试 WebSocket 文件大小限制"""
+    from app.config import get_settings
+
+    settings = get_settings()
+    # 创建超过限制的数据
+    large_data = b"x" * (settings.max_upload_bytes + 1000)
+
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        ws.send_bytes(large_data)
+        result = ws.receive_json()
+        assert result.get("type") == "error"
+        assert "too large" in result.get("detail", "").lower()
+
+
+def test_websocket_pong_response(client: TestClient):
+    """测试 WebSocket ping/pong 心跳"""
+    with client.websocket_connect("/ws?model=yolov8n.pt") as ws:
+        ws.receive_json()  # ready
+
+        ws.send_json({"type": "ping"})
+        result = ws.receive_json()
+        assert result.get("type") == "pong"
+
+
+# ------------------------------------------------------------------
 # 注册表 / 处理器单元测试
 # ------------------------------------------------------------------
 
