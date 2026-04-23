@@ -1,4 +1,4 @@
-PY?=python
+PY?=python3
 PIP?=$(PY) -m pip
 UVICORN?=uvicorn
 APP=app.main:app
@@ -14,10 +14,12 @@ DOCKER_IMAGE?=yolo-toys:latest
 help:
 	@echo "Development Commands:"
 	@echo "  install       Install production dependencies"
-	@echo "  dev           Install dev dependencies and setup"
+	@echo "  dev           Install runtime + dev dependencies and setup hooks"
 	@echo "  run           Run development server with auto-reload"
 	@echo "  test          Run test suite"
-	@echo "  lint          Run linting checks"
+	@echo "  lint          Run non-mutating lint and format checks"
+	@echo "  typecheck     Run BasedPyright type checking"
+	@echo "  hooks         Run all pre-commit hooks"
 	@echo "  format        Auto-format code"
 	@echo ""
 	@echo "Docker Commands:"
@@ -38,13 +40,22 @@ install:
 	$(PIP) install -r requirements.txt
 
 .PHONY: dev
-dev:
+dev: install
 	$(PIP) install -r requirements-dev.txt
 	pre-commit install
 
 .PHONY: lint
 lint:
+	ruff check .
+	ruff format --check .
+
+.PHONY: hooks
+hooks:
 	pre-commit run --all-files
+
+.PHONY: typecheck
+typecheck:
+	basedpyright
 
 .PHONY: format
 format:
@@ -93,4 +104,4 @@ clean:
 
 .PHONY: setup
 setup:
-	@bash scripts/dev.sh setup
+	$(MAKE) dev

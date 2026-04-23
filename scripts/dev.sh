@@ -16,8 +16,10 @@ Commands:
     setup       Setup development environment
     run         Run development server
     test        Run tests
-    lint        Run linting
+    lint        Run non-mutating lint and format checks
+    typecheck   Run BasedPyright type checking
     format      Format code
+    hooks       Run all pre-commit hooks
     docker      Build and run Docker container
     clean       Clean cache and temporary files
     help        Show this help
@@ -47,19 +49,29 @@ run_tests() {
     echo "Running tests..."
     source .venv/bin/activate 2>/dev/null || true
     export SKIP_WARMUP=1
-    pytest tests/ -v "${@:2}"
+    python3 -m pytest tests/ -v "${@:2}"
 }
 
 run_lint() {
     echo "Running linters..."
-    ruff check app/ tests/
-    ruff format --check app/ tests/
+    ruff check .
+    ruff format --check .
 }
 
 run_format() {
     echo "Formatting code..."
-    ruff check --fix app/ tests/
-    ruff format app/ tests/
+    ruff check --fix .
+    ruff format .
+}
+
+run_typecheck() {
+    echo "Running type checker..."
+    basedpyright
+}
+
+run_hooks() {
+    echo "Running pre-commit hooks..."
+    pre-commit run --all-files
 }
 
 docker_run() {
@@ -86,7 +98,9 @@ case "${1:-help}" in
     run) run_dev ;;
     test) run_tests "$@" ;;
     lint) run_lint ;;
+    typecheck) run_typecheck ;;
     format) run_format ;;
+    hooks) run_hooks ;;
     docker) docker_run ;;
     clean) clean ;;
     help|*) show_help ;;
