@@ -1,231 +1,82 @@
 # Contributing to YOLO-Toys
 
-Thanks for your interest in contributing! This document provides guidelines and workflows for contributing to the project.
+Thanks for contributing. This repository is **OpenSpec-driven** and currently optimized for **high-quality finalization**, not broad feature expansion.
 
-## Table of Contents
+## Working principles
 
-- [Quick Start](#quick-start)
-- [Development Setup](#development-setup)
-- [Code Style](#code-style)
-- [Commit Guidelines](#commit-guidelines)
-- [Pull Request Process](#pull-request-process)
-- [Adding New Models](#adding-new-models)
-- [Testing](#testing)
+- Prefer finishing and simplifying over adding new scope.
+- Keep docs, workflows, and public project surfaces coherent.
+- Avoid unstable tests, duplicate docs, and noisy automation.
+- For non-trivial work, start from OpenSpec instead of editing first and documenting later.
 
----
-
-## Quick Start
+## Setup
 
 ```bash
-# 1. Fork and clone
-git clone https://github.com/YOUR-USERNAME/yolo-toys.git
+git clone https://github.com/LessUp/yolo-toys.git
 cd yolo-toys
-
-# 2. Create branch
-git checkout -b feat/your-feature
-
-# 3. Setup environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-pre-commit install
-
-# 4. Make changes, then verify
-make lint   # Run Ruff checks
-make test   # Run pytest
-
-# 5. Commit and push
-git commit -m "feat: add your feature"
-git push origin feat/your-feature
-
-# 6. Open Pull Request on GitHub
+bash scripts/dev.sh setup
+. .venv/bin/activate
 ```
 
----
-
-## Development Setup
-
-### Prerequisites
-
-- Python 3.11+
-- pip, venv
-- (Optional) Docker for containerized testing
-
-### Environment Variables
-
-Create `.env` from the example for local development:
+## Required validation commands
 
 ```bash
-cp .env.example .env
+make lint     # non-mutating checks
+make format   # apply Ruff fixes
+make hooks    # full pre-commit run
+make test     # pytest + coverage
 ```
 
-Key variables for development:
+## OpenSpec workflow
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SKIP_WARMUP` | `false` | Set to `1` to skip model loading on startup |
-| `MODEL_NAME` | `yolov8s.pt` | Default model for testing |
-| `DEVICE` | `auto` | Force specific device if needed |
+Use this flow for any non-trivial change to code, docs, workflows, or repository structure:
 
-### IDE Setup
+1. `/opsx:explore` — investigate and clarify scope
+2. `/opsx:propose` — create the change proposal/design/tasks
+3. `/opsx:apply` — implement the change tasks
+4. `/review` — run a review at major phase boundaries
+5. `/opsx:archive` — archive the completed change
 
-Recommended VS Code extensions:
+### When to use `/review`
 
-- Python (Microsoft)
-- Ruff (charliermarke.ruff)
-- Pylance
+Run a review after major phases such as:
 
----
+- baseline/tooling changes
+- workflow or CI refactors
+- large doc reductions
+- GitHub Pages/public packaging changes
 
-## Code Style
+## Change guidelines
 
-We use **Ruff** for linting and formatting, configured in `pyproject.toml`.
+### Runtime and tests
 
-### Key Rules
+- Prefer mocked handler/model loading in tests.
+- Keep normal test runs independent of network/model downloads.
+- Add or update tests when behavior changes.
 
-- **Line length:** 100 characters
-- **Imports:** Sorted automatically by Ruff
-- **Type hints:** Required for function signatures
-- **Docstrings:** Preferred for public APIs
+### Documentation
 
-### Running Checks
+- `README*` is the repository entry point.
+- `docs/` is long-form usage/reference material.
+- GitHub Pages root files are for landing/navigation.
+- `changelog/` is release history only.
 
-```bash
-make lint      # Check issues
-make format    # Auto-fix issues
-```
+Do not mirror the same text across all four surfaces.
 
-Or run Ruff directly:
+### Automation
 
-```bash
-ruff check app/ tests/
-ruff format app/ tests/
-```
+- Keep workflow triggers narrow and high-signal.
+- Avoid adding automation that creates more noise than protection.
 
----
+## Pull requests
 
-## Commit Guidelines
+- Keep PRs phase-oriented and reviewable.
+- Explain the problem, the meaningful changes, and how you validated them.
+- Update OpenSpec artifacts and relevant canonical docs together when the workflow requires it.
 
-We follow **Conventional Commits** for clear history:
+## AI-assisted contribution
 
-### Format
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-[optional footer]
-```
-
-### Types
-
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Formatting, no code change |
-| `refactor` | Code refactoring |
-| `test` | Adding/updating tests |
-| `chore` | Build, CI, dependencies |
-
-### Examples
-
-```bash
-feat(handler): add support for SAM segment-anything model
-fix(routes): handle empty file upload gracefully
-docs(readme): update installation instructions
-test(api): add WebSocket config update test
-chore(docker): optimize multi-stage build layers
-```
-
----
-
-## Pull Request Process
-
-### Before Submitting
-
-- [ ] Code passes `make lint` with no errors
-- [ ] All tests pass: `make test`
-- [ ] New code has corresponding tests
-- [ ] Documentation updated if needed
-- [ ] Commit messages follow Conventional Commits
-
-### PR Template
-
-When you open a PR, include:
-
-1. **Summary** — What and why
-2. **Changes** — Key modifications
-3. **Testing** — How you tested
-4. **Screenshots** — If UI changes
-
-### Review Process
-
-1. Maintainers will review within a few days
-2. Address feedback by pushing new commits
-3. Once approved, a maintainer will merge
-
----
-
-## Adding New Models
-
-See `CLAUDE.md` for detailed architecture. Quick summary:
-
-1. **Create Handler** — Extend `BaseHandler` in `app/handlers/`
-2. **Implement Methods:**
-   - `load(model_id)` → `(model, processor)`
-   - `infer(model, processor, image, **params)` → `dict`
-3. **Register Model:**
-   - Add category to `ModelCategory` in `registry.py`
-   - Add to `_CATEGORY_HANDLER_MAP`
-   - Add metadata to `MODEL_REGISTRY`
-4. **Add Tests** — Verify model loading and inference
-
----
-
-## Testing
-
-### Running Tests
-
-```bash
-make test
-# or
-python -m pytest -v
-```
-
-### Test Structure
-
-```
-tests/
-├── __init__.py
-└── test_api.py      # API + WebSocket tests
-```
-
-### Writing Tests
-
-- Use `pytest.fixture` for setup
-- Use `monkeypatch` for mocking `model_manager`
-- Test both success and error cases
-
-Example:
-
-```python
-def test_infer_endpoint(client: TestClient, image_bytes: bytes, mock_infer):
-    files = {"file": ("test.png", image_bytes, "image/png")}
-    r = client.post("/infer?model=yolov8n.pt", files=files)
-    assert r.status_code == 200
-    assert "detections" in r.json()
-```
-
----
-
-## Questions?
-
-- Open a [GitHub Issue](https://github.com/LessUp/yolo-toys/issues) for bugs or features
-- Check existing issues before creating new ones
-- Provide reproduction steps and logs for bugs
-
-Thank you for contributing! 🎉
+- Repository guidance lives in `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`.
+- Default to single-agent autopilot or focused manual edits.
+- Use subagents selectively for audits and low-coupling parallel work.
+- Avoid `/fleet` unless the task clearly justifies the extra cost.

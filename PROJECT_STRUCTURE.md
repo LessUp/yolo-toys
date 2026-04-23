@@ -1,219 +1,115 @@
 # Project Structure
 
-This document describes the organization of the YOLO-Toys codebase.
+This document describes the current, canonical layout of the YOLO-Toys repository.
 
-## Root Directory
+## Repository Top Level
 
-The root directory contains essential project files and configuration:
-
-```
+```text
 yolo-toys/
-├── README.md                  # Project overview (English)
-├── README.zh-CN.md           # Project overview (Chinese)
-├── LICENSE                   # MIT License
-├── SECURITY.md               # Security policy
-├── CODE_OF_CONDUCT.md        # Community guidelines
-├── CONTRIBUTING.md           # Contribution guide
-├── AGENTS.md                 # AI assistant instructions
-├── CLAUDE.md                 # Claude-specific context
-├── Makefile                  # Build automation
-├── pyproject.toml            # Python project configuration
-├── docker-compose.yml        # Docker Compose (root level)
-├── requirements.txt          # Production dependencies
+├── app/                      # FastAPI application and model runtime
+├── config/                   # Environment templates
+├── deployments/              # Docker and monitoring assets
+├── docs/                     # User and operator documentation content
+├── frontend/                 # Static frontend served by the backend
+├── openspec/                 # OpenSpec source of truth for behavior and changes
+├── scripts/                  # Helper scripts
+├── tests/                    # Test suite
+├── .claude/                  # Project-scoped Claude/OpenSpec commands and skills
+├── .github/                  # GitHub workflows and templates
+├── _config.yml               # GitHub Pages / Jekyll configuration
+├── _data/                    # GitHub Pages navigation and site data
+├── _includes/                # GitHub Pages partial templates
+├── _layouts/                 # GitHub Pages layouts
+├── assets/                   # Shared site assets
+├── changelog/                # Release notes and version history
+├── 404.md                    # GitHub Pages 404 page
+├── index.md                  # GitHub Pages landing page
+├── AGENTS.md                 # Repository guidance for AI coding agents
+├── CLAUDE.md                 # Claude-specific repository guidance
+├── Makefile                  # Developer entry points
+├── pyproject.toml            # Python project and tool configuration
+├── requirements.txt          # Runtime dependencies
 ├── requirements-dev.txt      # Development dependencies
-├── .editorconfig             # Editor configuration
-├── .pre-commit-config.yaml   # Pre-commit hooks
-├── .gitignore                # Git ignore rules
-│
-# GitHub Pages / Jekyll (must be at root)
-├── _config.yml               # Jekyll configuration
-├── index.md                  # GitHub Pages entry
-├── 404.md                    # 404 page
-├── _includes/                # Jekyll includes
-├── _layouts/                 # Jekyll layouts
-├── assets/                   # Jekyll assets (CSS)
-│
-# Project directories (see below)
-├── app/                      # Backend application
-├── frontend/                 # Frontend code
-├── config/                   # Configuration examples
-├── changelog/                # Version history
-├── docs/                     # Documentation
-├── deployments/              # Deployment configs
-├── scripts/                  # Utility scripts
-├── specs/                    # Specifications (RFCs)
-└── tests/                    # Test suite
+└── README.md                 # Primary repository entry point
 ```
 
-## Directory Descriptions
+## Key Directories
 
-### `app/` - Backend Application
+### `app/`
 
-Core Python application code.
+Application runtime, request handling, configuration, middleware, metrics, model management, and model handlers.
 
-```
+```text
 app/
-├── __init__.py           # Package initialization
-├── main.py               # FastAPI entry point
-├── config.py             # Settings management
-├── routes.py             # API endpoints
-├── schemas.py            # Pydantic models
-├── model_manager.py      # Model lifecycle management
-├── metrics.py            # Prometheus metrics
-├── middleware.py         # HTTP middleware
-└── handlers/             # Model handler implementations
-    ├── base.py           # Base handler class
-    ├── registry.py       # Handler registry
-    ├── yolo_handler.py   # YOLO models
-    ├── hf_handler.py     # Hugging Face models
-    └── blip_handler.py   # BLIP models
+├── api/                      # Route modules and request utilities
+├── handlers/                 # Model handler implementations
+├── config.py                 # Settings management
+├── main.py                   # FastAPI entry point
+├── metrics.py                # Prometheus metrics
+├── middleware.py             # HTTP middleware
+├── model_manager.py          # Model cache and inference coordination
+├── routes.py                 # Router composition
+└── schemas.py                # Response/request schemas
 ```
 
-### `frontend/` - Web Frontend
+### `openspec/`
 
-Static frontend files served by FastAPI.
+OpenSpec is the authoritative planning and behavior layer for non-trivial repository changes.
 
-```
-frontend/
-├── index.html            # Main page
-├── app.js                # Application logic
-├── style.css             # Stylesheet
-└── js/                   # Additional JS modules
-```
-
-### `config/` - Configuration Examples
-
-Environment configuration templates.
-
-```
-config/
-├── .env.example          # Base configuration template
-├── .env.development      # Development environment
-└── .env.production       # Production environment
+```text
+openspec/
+├── config.yaml               # Project-wide OpenSpec configuration
+├── specs/                    # Current behavior and repository standards
+│   ├── api/
+│   ├── domain/
+│   ├── product/
+│   └── testing/
+└── changes/                  # Proposed, active, and completed change artifacts
 ```
 
-### `deployments/` - Deployment Configurations
+### `docs/`
 
-All deployment-related files.
+Long-form documentation for setup, architecture, deployment, and reference material. This directory feeds the documentation section of the site but is not the same thing as the GitHub Pages landing experience.
 
-```
-deployments/
-├── README.md             # Deployment guide
-├── docker/               # Docker configurations
-│   ├── Dockerfile        # Standard CPU image
-│   ├── Dockerfile.cuda   # NVIDIA GPU image
-│   ├── docker-compose.yml
-│   └── .dockerignore
-└── monitoring/           # Monitoring stack
-    ├── prometheus/
-    └── grafana/
-```
+### `changelog/`
 
-### `docs/` - Documentation
+Version and release history. This directory should contain release-oriented information only, not general documentation.
 
-Project documentation content (not GitHub Pages).
+### GitHub Pages root files
 
-```
-docs/
-├── README.md             # Documentation index
-├── api/                  # API documentation
-├── architecture/         # Architecture docs
-├── deployment/           # Deployment guides
-├── getting-started/      # Quick start guides
-├── guides/               # How-to guides
-└── reference/            # Reference materials
-```
+The published site is assembled from root-level Jekyll files plus selected project content:
 
-### `specs/` - Specifications
+- `_config.yml`
+- `index.md`
+- `404.md`
+- `_data/`
+- `_includes/`
+- `_layouts/`
+- `assets/`
 
-Project specifications and RFCs.
+### `.claude/`
 
-```
-specs/
-├── api/                  # API specifications (OpenAPI)
-├── db/                   # Database schemas
-├── product/              # Product requirements
-├── rfc/                  # RFC documents
-└── testing/              # Test specifications
-```
+Repository-scoped Claude/OpenSpec workflow assets:
 
-### `scripts/` - Utility Scripts
+- `commands/opsx/*` for OpenSpec command entry points
+- `skills/openspec-*` for propose/explore/apply/archive workflows
 
-Development and utility scripts.
+## Important Structural Rules
 
-```
-scripts/
-└── dev.sh                # Development helper script
-```
+1. `openspec/` replaces the legacy `specs/`-style planning model; new planning artifacts belong under OpenSpec.
+2. README, `docs/`, `changelog/`, and GitHub Pages each serve different purposes and should not mirror the same content verbatim.
+3. Deployment assets belong under `deployments/`, not the repository root, unless a root convenience wrapper is intentionally kept.
+4. New repository-wide process or governance changes should update both OpenSpec artifacts and the relevant canonical docs.
 
-### `tests/` - Test Suite
-
-Test files and fixtures.
-
-```
-tests/
-├── __init__.py
-├── conftest.py           # Pytest fixtures
-└── test_api.py           # API tests
-```
-
-### `changelog/` - Version History
-
-Detailed change logs for each version.
-
-```
-changelog/
-├── index.md              # Changelog index
-├── CHANGELOG.md          # Latest changes
-├── v3.1.0.md
-├── v3.0.0.md
-└── archive/              # Older changelogs
-```
-
-## Important Notes
-
-### GitHub Pages Files at Root
-
-The following files must remain at the root for GitHub Pages to work:
-
-- `_config.yml` - Jekyll configuration
-- `index.md` - Site entry point
-- `404.md` - Error page
-- `_includes/` - Template includes
-- `_layouts/` - Page layouts
-- `assets/` - Static assets
-
-### Docker Context
-
-When building Docker images from the project root:
+## Common Paths
 
 ```bash
-# Standard build (CPU)
+# Run the application
+uvicorn app.main:app --reload
+
+# CPU Docker build
 docker build -f deployments/docker/Dockerfile -t yolo-toys .
 
-# CUDA build (GPU)
+# CUDA Docker build
 docker build -f deployments/docker/Dockerfile.cuda -t yolo-toys:cuda .
 ```
-
-### Docker Compose
-
-The root `docker-compose.yml` is kept for convenience:
-
-```bash
-# Quick start
-docker compose up
-
-# With monitoring
-docker compose --profile monitoring up
-```
-
-## Migration Notes
-
-Previous directory layout had Docker files at root. They have been moved to:
-
-- `Dockerfile` → `deployments/docker/Dockerfile`
-- `Dockerfile.cuda` → `deployments/docker/Dockerfile.cuda`
-- `.dockerignore` → `deployments/docker/.dockerignore`
-- `.env.example` → `config/.env.example`
-
-Old paths are no longer valid. Update your workflows accordingly.
