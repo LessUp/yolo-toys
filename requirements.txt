@@ -5,7 +5,7 @@ ultralytics>=8.3.0
 opencv-python-headless>=4.9.0
 pillow>=10.4.0
 numpy>=1.26.0
-python-multipart>=0.0.12
+python-multipart>=0.0.26
 aiofiles>=24.0.0
 torch>=2.3.0
 # HuggingFace Transformers 多模型支持
