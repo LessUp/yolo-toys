@@ -22,7 +22,7 @@ nav_order: 2
     <p>没有找到结果 / No results found.</p>
     <p>尝试使用英文关键词或浏览 <a href="{{ site.baseurl }}/docs/">文档索引</a></p>
   </div>
-  
+
   <div class="search-tips" style="margin-top: 3rem; padding: 1.5rem; background-color: rgba(79, 70, 229, 0.05); border-radius: 8px;">
     <h3>搜索技巧 / Search Tips</h3>
     <ul>
@@ -40,11 +40,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.querySelector('.search-input');
   const searchResults = document.getElementById('search-results');
   const noResults = document.getElementById('search-no-results');
-  
+
   // Focus search input on page load
   if (searchInput) {
     searchInput.focus();
-    
+
     // Add clear button
     const clearBtn = document.createElement('button');
     clearBtn.className = 'search-clear';
@@ -55,14 +55,14 @@ document.addEventListener('DOMContentLoaded', function() {
       searchInput.focus();
       if (noResults) noResults.style.display = 'none';
     };
-    
+
     const searchBox = document.getElementById('search-box');
     if (searchBox) {
       searchBox.style.position = 'relative';
       searchBox.appendChild(clearBtn);
     }
   }
-  
+
   // Monitor search results
   const checkResults = setInterval(function() {
     const results = document.querySelectorAll('.search-result');
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   }, 500);
-  
+
   // Clear after 10 seconds
   setTimeout(function() {
     clearInterval(checkResults);
