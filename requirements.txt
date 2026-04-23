@@ -11,7 +11,7 @@ torch>=2.3.0
 # HuggingFace Transformers 多模型支持
 transformers>=4.44.0
 # 加速推理
-accelerate>=1.0.0
+accelerate>=1.13.0
 # 缓存工具
 cachetools>=5.5.0
 # Prometheus 指标
