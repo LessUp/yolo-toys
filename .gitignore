@@ -42,3 +42,4 @@ htmlcov/
 
 # Type checker
 pyrightconfig.json
+.omc/
