@@ -10,6 +10,11 @@ import numpy as np
 
 from app.handlers.base import BaseHandler
 
+try:
+    import torch
+except ImportError:
+    torch = None  # type: ignore[misc]
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,8 +60,13 @@ class YOLOHandler(BaseHandler):
 
         try:
             results = model(image, **kwargs)
+        except RuntimeError as e:
+            # CUDA out of memory or other runtime errors
+            if torch is not None and "out of memory" in str(e).lower():
+                logger.error("YOLO GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("YOLO 推理失败: %s", e)
+            logger.exception("YOLO 推理失败: %s", e)
             raise
         elapsed = (time.time() - t0) * 1000.0
 

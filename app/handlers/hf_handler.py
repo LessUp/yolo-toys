@@ -78,8 +78,12 @@ class DETRHandler(BaseHandler):
         try:
             with torch_module.no_grad():
                 outputs = model(**inputs)
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                logger.error("DETR GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("DETR 推理失败: %s", e)
+            logger.exception("DETR 推理失败: %s", e)
             raise
 
         target_sizes = torch_module.as_tensor([pil_image.size[::-1]])
@@ -153,8 +157,12 @@ class OWLViTHandler(BaseHandler):
         try:
             with torch_module.no_grad():
                 outputs = model(**inputs)
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                logger.error("OWL-ViT GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("OWL-ViT 推理失败: %s", e)
+            logger.exception("OWL-ViT 推理失败: %s", e)
             raise
 
         target_sizes = torch_module.as_tensor([pil_image.size[::-1]])
@@ -239,8 +247,12 @@ class GroundingDINOHandler(BaseHandler):
         try:
             with torch_module.no_grad():
                 outputs = model(**inputs)
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                logger.error("GroundingDINO GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("GroundingDINO 推理失败: %s", e)
+            logger.exception("GroundingDINO 推理失败: %s", e)
             raise
 
         if not hasattr(processor, "post_process_grounded_object_detection"):

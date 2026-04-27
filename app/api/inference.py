@@ -7,6 +7,7 @@
 """
 
 import asyncio
+import logging
 import time
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
@@ -18,6 +19,7 @@ from app.model_manager import model_manager
 from app.schemas import InferenceResponse
 
 router = APIRouter(tags=["Inference"])
+logger = logging.getLogger(__name__)
 settings = get_settings()
 semaphore = asyncio.Semaphore(settings.max_concurrency)
 
@@ -74,8 +76,13 @@ async def infer(
         except ValueError as e:
             INFERENCE_REQUESTS.labels(model=model_id, task="unknown", status="error").inc()
             raise HTTPException(status_code=400, detail=str(e)) from e
+        except RuntimeError as e:
+            INFERENCE_REQUESTS.labels(model=model_id, task="unknown", status="error").inc()
+            logger.error("Inference runtime error for model %s: %s", model_id, e)
+            raise HTTPException(status_code=500, detail=f"Model inference failed: {e}") from e
         except Exception as e:
             INFERENCE_REQUESTS.labels(model=model_id, task="unknown", status="error").inc()
+            logger.exception("Unexpected inference error for model %s", model_id)
             raise HTTPException(status_code=500, detail=str(e)) from e
 
 

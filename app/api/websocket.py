@@ -221,11 +221,21 @@ async def websocket_infer(websocket: WebSocket) -> None:
                     model=state["model_id"], task=result.get("task", "detect"), status="success"
                 ).inc()
 
+            except RuntimeError as exc:
+                INFERENCE_REQUESTS.labels(
+                    model=state["model_id"], task="unknown", status="error"
+                ).inc()
+                logger.warning(
+                    "WebSocket 推理运行时错误: model=%s, error=%s", state["model_id"], exc
+                )
+                await _ws_send_json(websocket, {"type": "error", "detail": str(exc)})
+                WEBSOCKET_MESSAGES.labels(message_type="error", direction="out").inc()
+                continue
             except Exception as exc:
                 INFERENCE_REQUESTS.labels(
                     model=state["model_id"], task="unknown", status="error"
                 ).inc()
-                logger.warning("WebSocket 推理异常: model=%s, error=%s", state["model_id"], exc)
+                logger.exception("WebSocket 推理未处理异常: model=%s", state["model_id"])
                 await _ws_send_json(websocket, {"type": "error", "detail": str(exc)})
                 WEBSOCKET_MESSAGES.labels(message_type="error", direction="out").inc()
                 continue
@@ -233,8 +243,12 @@ async def websocket_infer(websocket: WebSocket) -> None:
             await _ws_send_json(websocket, {"type": "result", "data": result})
             WEBSOCKET_MESSAGES.labels(message_type="result", direction="out").inc()
 
+    except WebSocketDisconnect:
+        logger.info("WebSocket 客户端断开连接: client=%s", websocket.client)
+    except RuntimeError as e:
+        logger.error("WebSocket 运行时错误: %s", e)
     except Exception as e:
-        logger.error("WebSocket 未处理异常: %s", e)
+        logger.exception("WebSocket 未处理异常: %s", e)
     finally:
         WEBSOCKET_CONNECTIONS.dec()
         with contextlib.suppress(Exception):

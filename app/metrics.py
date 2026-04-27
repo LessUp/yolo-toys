@@ -11,7 +11,7 @@ from prometheus_client import Counter, Gauge, Histogram, Info
 
 # Application info
 APP_INFO = Info("yolo_toys_info", "Application information")
-APP_INFO.info({"version": "3.1.0", "framework": "fastapi"})
+APP_INFO.info({"version": "3.2.0", "framework": "fastapi"})
 
 # Request metrics
 INFERENCE_REQUESTS = Counter(

@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
 
 from app.metrics import HTTP_REQUEST_DURATION, update_memory_metric
@@ -109,8 +110,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Check rate limit
         if len(self.requests.get(client_ip, [])) >= self.requests_per_minute:
             logger.warning("Rate limit exceeded for %s", client_ip)
-            from starlette.responses import JSONResponse
-
             return JSONResponse(
                 status_code=429, content={"detail": "Rate limit exceeded. Try again later."}
             )

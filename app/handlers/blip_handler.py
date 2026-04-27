@@ -65,8 +65,12 @@ class BLIPCaptionHandler(BaseHandler):
         try:
             with torch_module.no_grad():
                 out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                logger.error("BLIP Caption GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("BLIP Caption 推理失败: %s", e)
+            logger.exception("BLIP Caption 推理失败: %s", e)
             raise
 
         caption = processor.decode(out[0], skip_special_tokens=True)
@@ -113,8 +117,12 @@ class BLIPVQAHandler(BaseHandler):
         try:
             with torch_module.no_grad():
                 out = model.generate(**inputs, max_new_tokens=settings.blip_max_tokens)
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                logger.error("BLIP VQA GPU 内存不足: %s", e)
+            raise
         except Exception as e:
-            logger.error("BLIP VQA 推理失败: %s", e)
+            logger.exception("BLIP VQA 推理失败: %s", e)
             raise
 
         answer = processor.decode(out[0], skip_special_tokens=True)
