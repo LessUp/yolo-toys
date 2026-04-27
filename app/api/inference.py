@@ -9,6 +9,7 @@
 import asyncio
 import logging
 import time
+from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
@@ -26,18 +27,18 @@ semaphore = asyncio.Semaphore(settings.max_concurrency)
 
 @router.post("/infer", response_model=InferenceResponse, response_model_exclude_none=True)
 async def infer(
-    file: UploadFile = File(...),
-    conf: float | None = Query(default=None, ge=0.0, le=1.0, description="置信度阈值 (0.0-1.0)"),
-    iou: float | None = Query(default=None, ge=0.0, le=1.0, description="IoU 阈值 (0.0-1.0)"),
-    device: str | None = Query(default=None, description="设备 (cpu/cuda/mps)"),
-    max_det: int | None = Query(default=None, gt=0, le=1000, description="最大检测数 (1-1000)"),
-    model: str | None = Query(default=None, description="模型 ID"),
-    imgsz: int | None = Query(default=None, ge=32, le=4096, description="推理尺寸 (32-4096)"),
-    half: bool | None = Query(default=None, description="FP16 半精度"),
-    text_queries: str | None = Query(
-        default=None, description="文本查询（用于开放词汇检测，逗号分隔）"
-    ),
-    question: str | None = Query(default=None, max_length=500, description="问题（用于 VQA）"),
+    file: Annotated[UploadFile, File()],
+    conf: Annotated[float | None, Query(ge=0.0, le=1.0, description="置信度阈值 (0.0-1.0)")] = None,
+    iou: Annotated[float | None, Query(ge=0.0, le=1.0, description="IoU 阈值 (0.0-1.0)")] = None,
+    device: Annotated[str | None, Query(description="设备 (cpu/cuda/mps)")] = None,
+    max_det: Annotated[int | None, Query(gt=0, le=1000, description="最大检测数 (1-1000)")] = None,
+    model: Annotated[str | None, Query(description="模型 ID")] = None,
+    imgsz: Annotated[int | None, Query(ge=32, le=4096, description="推理尺寸 (32-4096)")] = None,
+    half: Annotated[bool | None, Query(description="FP16 半精度")] = None,
+    text_queries: Annotated[
+        str | None, Query(description="文本查询（用于开放词汇检测，逗号分隔）")
+    ] = None,
+    question: Annotated[str | None, Query(max_length=500, description="问题（用于 VQA）")] = None,
 ):
     """统一推理端点 - 支持检测、分割、姿态估计、开放词汇检测、VQA"""
     start_time = time.time()
@@ -88,8 +89,8 @@ async def infer(
 
 @router.post("/caption", response_model=InferenceResponse, response_model_exclude_none=True)
 async def caption(
-    file: UploadFile = File(...),
-    model: str | None = Query(default=None, description="模型 ID"),
+    file: Annotated[UploadFile, File()],
+    model: Annotated[str | None, Query(description="模型 ID")] = None,
 ):
     """图像描述生成"""
     start_time = time.time()
@@ -122,9 +123,9 @@ async def caption(
 
 @router.post("/vqa", response_model=InferenceResponse, response_model_exclude_none=True)
 async def vqa(
-    file: UploadFile = File(...),
-    question: str = Query(..., description="要问的问题"),
-    model: str | None = Query(default=None, description="模型 ID"),
+    file: Annotated[UploadFile, File()],
+    question: Annotated[str, Query(description="要问的问题")],
+    model: Annotated[str | None, Query(description="模型 ID")] = None,
 ):
     """视觉问答"""
     start_time = time.time()

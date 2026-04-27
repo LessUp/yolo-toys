@@ -6,7 +6,7 @@
 - /labels - 模型标签
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -37,7 +37,7 @@ async def model_info(model_id: str) -> dict[str, Any]:
 
 
 @router.get("/labels")
-async def labels(model: str | None = Query(default=None)) -> dict[str, Any]:
+async def labels(model: Annotated[str | None, Query()] = None) -> dict[str, Any]:
     """获取模型的标签列表"""
     model_id = model or settings.model_name
     try:

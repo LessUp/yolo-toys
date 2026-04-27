@@ -3,6 +3,7 @@ FastAPI 中间件 - 速率限制、超时控制、指标收集
 """
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 
@@ -94,25 +95,68 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.requests: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
+        self._last_cleanup = time.time()
+        self._max_ips = 10000  # 最大跟踪 IP 数量限制
+
+    def _cleanup_expired_ips(self, current_time: float) -> None:
+        """定期清理过期 IP 记录，防止内存泄漏"""
+        with self._lock:
+            # 每 60 秒清理一次
+            if current_time - self._last_cleanup < 60:
+                return
+
+            expired_ips = []
+            for ip, timestamps in self.requests.items():
+                # 过滤掉 60 秒前的请求
+                self.requests[ip] = [t for t in timestamps if current_time - t < 60]
+                if not self.requests[ip]:
+                    expired_ips.append(ip)
+
+            # 删除空 IP 记录
+            for ip in expired_ips:
+                del self.requests[ip]
+
+            # 如果 IP 数量超过限制，删除最旧的 IP
+            if len(self.requests) > self._max_ips:
+                # 按 IP 的最后请求时间排序，删除最旧的
+                sorted_ips = sorted(
+                    self.requests.keys(),
+                    key=lambda x: self.requests[x][-1] if self.requests[x] else 0,
+                )
+                for ip in sorted_ips[: len(self.requests) - self._max_ips]:
+                    del self.requests[ip]
+
+            self._last_cleanup = current_time
+            logger.debug(
+                "Rate limit cleanup: %d IPs tracked, %d expired removed",
+                len(self.requests),
+                len(expired_ips),
+            )
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
 
-        # Clean old requests
-        if client_ip in self.requests:
-            self.requests[client_ip] = [
-                t for t in self.requests[client_ip] if current_time - t < 60
-            ]
-        else:
-            self.requests[client_ip] = []
+        # 定期清理过期记录
+        self._cleanup_expired_ips(current_time)
 
-        # Check rate limit
-        if len(self.requests.get(client_ip, [])) >= self.requests_per_minute:
-            logger.warning("Rate limit exceeded for %s", client_ip)
-            return JSONResponse(
-                status_code=429, content={"detail": "Rate limit exceeded. Try again later."}
-            )
+        with self._lock:
+            # Clean old requests for this IP
+            if client_ip in self.requests:
+                self.requests[client_ip] = [
+                    t for t in self.requests[client_ip] if current_time - t < 60
+                ]
+            else:
+                self.requests[client_ip] = []
 
-        self.requests[client_ip].append(current_time)
+            # Check rate limit
+            if len(self.requests.get(client_ip, [])) >= self.requests_per_minute:
+                logger.warning("Rate limit exceeded for %s", client_ip)
+                return JSONResponse(
+                    status_code=429, content={"detail": "Rate limit exceeded. Try again later."}
+                )
+
+            self.requests[client_ip].append(current_time)
+
         return await call_next(request)

@@ -9,8 +9,10 @@
 import gc
 import logging
 import os
+import threading
 import time
 import urllib.parse
+from contextlib import contextmanager
 from typing import Any
 
 import numpy as np
@@ -59,26 +61,43 @@ def get_memory_usage() -> float:
 
 
 class ModelCache(TTLCache):
-    """带内存监控的 TTL 缓存"""
+    """带内存监控和线程安全的 TTL 缓存"""
 
     def __init__(self, maxsize: int, ttl: float):
         super().__init__(maxsize=maxsize, ttl=ttl)
         self._access_times: dict[str, float] = {}
+        self._lock = threading.Lock()
+
+    @contextmanager
+    def _threadsafe(self):
+        """线程安全上下文管理器"""
+        self._lock.acquire()
+        try:
+            yield
+        finally:
+            self._lock.release()
 
     def __getitem__(self, key: str) -> Any:
-        value = super().__getitem__(key)
-        self._access_times[key] = time.time()
-        return value
+        with self._lock:
+            value = super().__getitem__(key)
+            self._access_times[key] = time.time()
+            return value
 
     def __setitem__(self, key: str, value: Any) -> None:
-        # 内存压力检查
-        if len(self) >= self.maxsize or get_memory_usage() > MEMORY_THRESHOLD:
-            self._evict_lru()
-        super().__setitem__(key, value)
-        self._access_times[key] = time.time()
+        with self._lock:
+            # 内存压力检查
+            if len(self) >= self.maxsize or get_memory_usage() > MEMORY_THRESHOLD:
+                self._evict_lru_unsafe()
+            super().__setitem__(key, value)
+            self._access_times[key] = time.time()
 
-    def _evict_lru(self) -> None:
-        """驱逐最久未使用的模型"""
+    def __delitem__(self, key: str) -> None:
+        with self._lock:
+            super().__delitem__(key)
+            self._access_times.pop(key, None)
+
+    def _evict_lru_unsafe(self) -> None:
+        """驱逐最久未使用的模型（内部方法，需在锁内调用）"""
         if not self._access_times:
             return
         oldest_key = min(self._access_times, key=lambda cache_key: self._access_times[cache_key])
@@ -89,6 +108,11 @@ class ModelCache(TTLCache):
         gc.collect()
         if torch is not None and torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+    def _evict_lru(self) -> None:
+        """驱逐最久未使用的模型（线程安全）"""
+        with self._lock:
+            self._evict_lru_unsafe()
 
 
 class ModelManager:

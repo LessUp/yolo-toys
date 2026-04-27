@@ -79,7 +79,7 @@ class BaseHandler(ABC):
         result.update(extra)
         return result
 
-    def _model_to_device(self, model: Any) -> Any:  # noqa: ANN401
+    def _model_to_device(self, model: Any) -> Any:
         """将模型移动到当前设备（GPU 场景）"""
         if self._device != "cpu" and hasattr(model, "to"):
             model = model.to(self._device)
